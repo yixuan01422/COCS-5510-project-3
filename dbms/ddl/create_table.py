@@ -16,16 +16,29 @@ class CreateTableHandler:
                 if table_name_token:
                     table_name = table_name_token.value
             elif isinstance(token, sqlparse.sql.Parenthesis):
-                for item in token.tokens:
-                    if isinstance(item, sqlparse.sql.IdentifierList):
-                        for col in item.get_identifiers():
-                            columns.append(col.value)
-                    elif isinstance(item, sqlparse.sql.Identifier):
-                        columns.append(item.value)
+                column_tokens = token.tokens
+                current_column_name = None
+                current_column_type = None
+                for column_token in column_tokens:
+                    if isinstance(column_token, sqlparse.sql.Identifier):
+                        current_column_name = column_token.get_real_name()
+                    elif column_token.ttype in (sqlparse.tokens.Keyword, sqlparse.tokens.Name.Builtin):
+                        current_column_type = column_token.value.upper()
+                    elif column_token.ttype is sqlparse.tokens.Punctuation and column_token.value == ',':
+                        if current_column_name and current_column_type:
+                            columns.append((current_column_name, current_column_type))
+                        current_column_name = None
+                        current_column_type = None
 
+                if current_column_name and current_column_type:
+                    columns.append((current_column_name, current_column_type))
         if table_name is None:
             raise ValueError("Table name not found in CREATE TABLE statement")
 
         # Create the table
-        self.database.create_table(table_name, columns)
-        print(f"Table '{table_name}' created with columns: {columns}")
+        result = self.database.create_table(table_name, columns)
+        if result:
+            print(f"Table '{table_name}' created with columns: {columns}")
+        else:
+            print(f"ERROR: Table '{table_name}' already exists")
+

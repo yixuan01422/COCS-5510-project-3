@@ -20,5 +20,8 @@ class DropTableHandler:
             raise ValueError("Table name not found in DROP TABLE statement")
 
         # Drop the table
-        self.database.drop_table(table_name)
-        print(f"Table '{table_name}' dropped")
+        result = self.database.drop_table(table_name)
+        if result:
+            print(f"Table '{table_name}' dropped")
+        else:
+            print(f"ERROR: Table '{table_name}' does not exist")
