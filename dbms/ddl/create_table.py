@@ -6,39 +6,45 @@ class CreateTableHandler:
         self.database = database
 
     def handle(self, parsed):
-        """Handle CREATE TABLE statements."""
-        table_name = None
-        columns = []
+        table_name = None  # Stores the table name
+        columns = []  # Stores column definitions
+        primary_key = None  # Stores the primary key column name
 
+        # Iterate through the parsed SQL tokens
         for token in parsed.tokens:
+            # Identify the TABLE keyword and extract the table name
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'TABLE':
                 table_name_token = parsed.token_next(parsed.token_index(token))[1]
                 if table_name_token:
-                    table_name = table_name_token.value
+                    table_name = table_name_token.value  # Extract table name
+            
+            # Identify the parenthesis section containing column definitions    
             elif isinstance(token, sqlparse.sql.Parenthesis):
-                column_tokens = token.tokens
-                current_column_name = None
-                current_column_type = None
-                for column_token in column_tokens:
-                    if isinstance(column_token, sqlparse.sql.Identifier):
-                        current_column_name = column_token.get_real_name()
-                    elif column_token.ttype in (sqlparse.tokens.Keyword, sqlparse.tokens.Name.Builtin):
-                        current_column_type = column_token.value.upper()
-                    elif column_token.ttype is sqlparse.tokens.Punctuation and column_token.value == ',':
-                        if current_column_name and current_column_type:
-                            columns.append((current_column_name, current_column_type))
-                        current_column_name = None
-                        current_column_type = None
+                column_definitions = token.value.strip("()")  # Extract content inside parentheses
+                column_lines = column_definitions.split(",")  # Split by comma
 
-                if current_column_name and current_column_type:
-                    columns.append((current_column_name, current_column_type))
+                for line in column_lines:
+                    parts = line.strip().split()
+                    
+                    # Ensure at least column name and type exist
+                    if len(parts) >= 2:
+                        column_name, column_type = parts[0], parts[1].upper()
+                        columns.append((column_name, column_type))
+
+                        # Check if it's a primary key
+                        if len(parts) > 2 and "PRIMARY" in parts and "KEY" in parts:
+                            primary_key = column_name  # Assign primary key
+
+        # Debugging output to confirm extracted columns
+        print(f"Extracted Columns: {columns}, PRIMARY KEY: {primary_key}")
+
+        # Validate that a table name was provided
         if table_name is None:
             raise ValueError("Table name not found in CREATE TABLE statement")
 
-        # Create the table
-        result = self.database.create_table(table_name, columns)
+        # Create the table with primary key support
+        result = self.database.create_table(table_name, columns, primary_key)
         if result:
-            print(f"Table '{table_name}' created with columns: {columns}")
+            print(f"Table '{table_name}' created with columns: {columns}, PRIMARY KEY: {primary_key}")
         else:
             print(f"ERROR: Table '{table_name}' already exists")
-
