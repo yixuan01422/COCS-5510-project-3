@@ -56,4 +56,5 @@ class Database:
 
     def get_table_data(self, table_name):
         """Get all rows from a table."""
+        print(f"DEBUG: Fetching data for table '{table_name}':", self.tables.get(table_name, []))
         return self.tables.get(table_name, [])
