@@ -21,7 +21,6 @@ class DeleteHandler:
                 print(token)
                 condition = token.value.replace("WHERE", "").strip()
                 condition = condition.replace(";", "")
-                print(condition)
                 if "=" in condition:
                     condition_type = "="
                     parts = condition.split("=")
@@ -34,15 +33,14 @@ class DeleteHandler:
                 else:
                     raise ValueError("Unsupported condition type in WHERE clause")
 
-                # Extract column and value
                 condition_column = parts[0].strip()
                 condition_value = parts[1].strip()
-                print(condition_column, condition_value, condition_type)
+
         message = None
         if table_name is None:
             message = "Table name not found in DELETE FROM statement"
         if condition_column is None or condition_value is None:
             message = "Condition not found in DELETE FROM statement"
         # Delete rows from the table based on the condition
-        success, message = self.database.delete_rows(table_name, condition_column, condition_value)
+        success, message = self.database.delete_rows(table_name, condition_column, condition_value, condition_type)
         print(message)
