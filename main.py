@@ -8,16 +8,14 @@ def main():
     db.execute("CREATE TABLE agents ( id STRING, name STRING PRIMARY KEY, age INT );")
     # db.execute("DROP TABLE users;")
     # db.execute("DROP TABLE users;")
-#     db.execute('''CREATE TABLE products (
-#     id STRING PRIMARY KEY,
-#     name STRING,
-#     price INT,
-# );''')
     # # Insert data
     db.execute("INSERT INTO users VALUES  ( 1, 'Alice', 25);")
     db.execute("INSERT INTO users VALUES  ( 1, 'Tom', 19);") # for duplicate primary key testing /Expected: ERROR
     db.execute("INSERT INTO users VALUES (2, 'Bob', 30);")
     db.execute("INSERT INTO users VALUES (3, 'Dog', 30);")
+    db.execute("INSERT INTO users VALUES (4, 'Cat', 30);")
+    # db.execute("SELECT * FROM users;")
+    db.execute("SELECT * FROM users;")
     db.execute("DELETE FROM users WHERE id<=1;")
     # db.execute("INSERT INTO agents VALUES  ( 'A', 'Ben', 35);")
     # db.execute("INSERT INTO agents VALUES  ( 'A', 'Ben', 45);") # for duplicate primary key testing /Expected: ERROR
