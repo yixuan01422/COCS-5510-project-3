@@ -21,15 +21,22 @@ class DeleteHandler:
                 print(token)
                 condition = token.value.replace("WHERE", "").strip()
                 condition = condition.replace(";", "")
-                if "=" in condition:
-                    condition_type = "="
-                    parts = condition.split("=")
+                
+                if ">=" in condition:
+                    condition_type = ">="
+                    parts = condition.split(">=")
+                elif "<=" in condition:
+                    condition_type = "<="
+                    parts = condition.split("<=")
                 elif ">" in condition:
                     condition_type = ">"
                     parts = condition.split(">")
                 elif "<" in condition:
                     condition_type = "<"
                     parts = condition.split("<")
+                elif "=" in condition:
+                    condition_type = "="
+                    parts = condition.split("=")
                 else:
                     raise ValueError("Unsupported condition type in WHERE clause")
 
