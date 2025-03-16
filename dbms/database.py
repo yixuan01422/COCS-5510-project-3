@@ -54,6 +54,24 @@ class Database:
         self.tables[table_name].append(row) # Append row to the table
         return True, f"Inserted {row} into '{table_name}'"
 
+    def delete_rows(self, table_name, condition_column, condition_value):
+        """Delete rows from a table based on a condition."""
+        if table_name not in self.tables:
+            return False, f"Table '{table_name}' does not exist"
+
+        column_definitions = self.columns[table_name]
+        column_names = [col[0] for col in column_definitions]
+        if condition_column not in column_names:
+            return False, f"Column '{condition_column}' not found in table '{table_name}'"
+
+        condition_index = column_names.index(condition_column)
+        new_table_data = [row for row in self.tables[table_name] if str(row[condition_index]) != condition_value]
+        deleted_count = len(self.tables[table_name]) - len(new_table_data)
+        self.tables[table_name] = new_table_data
+
+        return True, f"Deleted {deleted_count} rows from '{table_name}' where {condition_column} = {condition_value}"
+
+
     def get_table_data(self, table_name):
         """Get all rows from a table."""
         return self.tables.get(table_name, [])
