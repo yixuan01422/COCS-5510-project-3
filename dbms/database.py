@@ -93,37 +93,38 @@ class Database:
         return True, f"Deleted {deleted_count} rows from '{table_name}' where {condition_column} {condition_type} {condition_value}"
 
 
-    def select_rows(self, table_name, selected_columns, condition_column=None, condition_value=None, condition_type=None):
+    def select_rows(
+        self, table_name, selected_columns, condition_columns=None, 
+        condition_values=None, condition_types=None, logical_operator=None
+    ):
+        """Select rows from a table based on columns and optional condition(s)."""
+        if table_name not in self.tables:
+            return False, f"Table '{table_name}' does not exist."
+
         rows = self.tables[table_name]
-        column_definitions = self.columns[table_name]
-        column_names = [col[0] for col in column_definitions]
+        col_definitions = self.columns[table_name]
+        col_names = [col[0] for col in col_definitions]
 
         filtered_rows = []
-        if condition_column and condition_value and condition_type:
-            if condition_column not in column_names:
-                return False, f"Column '{condition_column}' not found in table '{table_name}'"
-
-            condition_index = column_names.index(condition_column)
-            col_type = self.columns[table_name][condition_index][1]
-            if col_type == 'INT':
-                condition_value = int(condition_value)
-
-            if condition_type == '=':
-                condition_func = lambda row_value: row_value == condition_value
-            elif condition_type == '>':
-                condition_func = lambda row_value: row_value > condition_value
-            elif condition_type == '<':
-                condition_func = lambda row_value: row_value < condition_value
-            elif condition_type == '>=':
-                condition_func = lambda row_value: row_value >= condition_value
-            elif condition_type == '<=':
-                condition_func = lambda row_value: row_value <= condition_value
-
+        
+        if len(condition_columns) == 0:
+            filtered_rows = rows
+        elif len(condition_columns) == 1:
+            condition_index, condition_func = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
             for row in rows:
                 if condition_func(row[condition_index]):
                     filtered_rows.append(row)
-        else:
-            filtered_rows = rows[:]
+        elif len(condition_columns) == 2:
+            condition_index1, condition_func1 = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
+            condition_index2, condition_func2 = self.build_condition_func(table_name, col_names, condition_columns[1], condition_types[1], condition_values[1])
+
+            for row in rows:
+                if logical_operator == 'AND':
+                    if condition_func1(row[condition_index1]) and condition_func2(row[condition_index2]):
+                        filtered_rows.append(row)
+                elif logical_operator == 'OR':
+                    if condition_func1(row[condition_index1]) or condition_func2(row[condition_index2]):
+                        filtered_rows.append(row)
 
         if len(selected_columns) == 1 and selected_columns[0] == '*':
             return True, filtered_rows
@@ -132,9 +133,27 @@ class Database:
         for row in filtered_rows:
             selected_data = []
             for col in selected_columns:
-                if col in column_names:
-                    col_idx = column_names.index(col)
+                if col in col_names:
+                    col_idx = col_names.index(col)
                     selected_data.append(row[col_idx])
             result_rows.append(selected_data)
 
         return True, result_rows
+    
+    def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):
+        condition_index = col_names.index(condition_column)
+        col_type = self.columns[table_name][condition_index][1]
+        if col_type == 'INT':
+            condition_value = int(condition_value)
+        if  condition_type == '=':
+            condition_func = lambda row_value: row_value == condition_value
+        elif condition_type == '>':
+            condition_func = lambda row_value: row_value > condition_value
+        elif condition_type == '<':
+            condition_func = lambda row_value: row_value < condition_value
+        elif condition_type == '>=':
+            condition_func = lambda row_value: row_value >= condition_value
+        elif condition_type == '<=':
+            condition_func = lambda row_value: row_value <= condition_value   
+
+        return condition_index, condition_func
