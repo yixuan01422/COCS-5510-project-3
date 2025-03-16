@@ -8,7 +8,7 @@ from .dml.delete import DeleteHandler
 
 class SimpleDBMS:
     def __init__(self):
-        self.database = Database()  # Centralized data store
+        self.database = Database()  
         self.create_table_handler = CreateTableHandler(self.database)
         self.drop_table_handler = DropTableHandler(self.database)
         self.insert_handler = InsertHandler(self.database)

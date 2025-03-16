@@ -1,16 +1,16 @@
 class Database:
     def __init__(self):
-        self.tables = {} # Stores table data
-        self.columns = {}  # Stores table schemas
-        self.primary_keys = {}  # Stores primary keys for each table
+        self.tables = {} 
+        self.columns = {}  
+        self.primary_keys = {}  
 
-    def create_table(self, table_name, columns, primary_key=None):  # Added primary_key argument
+    def create_table(self, table_name, columns, primary_key=None): 
         """Create a new table."""
         if table_name in self.tables:
             return False, f"ERROR: Table '{table_name}' already exists"
         self.columns[table_name] = columns
-        self.tables[table_name] = [] # Ensure each table gets its own list
-        self.primary_keys[table_name] = primary_key  # Store the primary key
+        self.tables[table_name] = [] 
+        self.primary_keys[table_name] = primary_key  
 
         return True, f"Table '{table_name}' created with PRIMARY KEY: {primary_key}"
 
@@ -20,7 +20,7 @@ class Database:
             del self.tables[table_name]
             del self.columns[table_name]
             if table_name in self.primary_keys:
-                del self.primary_keys[table_name]  # Remove primary key reference
+                del self.primary_keys[table_name]  
             return True, f"Table '{table_name}' dropped successfully."
         return False, f"ERROR: Table '{table_name}' does not exist."
 
@@ -33,7 +33,6 @@ class Database:
         if len(row) != len(column_definitions):
             return False, f"Expected {len(column_definitions)} values, got {len(row)}"
         
-        # Check Primary Key constraint
         primary_key = self.primary_keys.get(table_name)
         if primary_key:
             column_names = [col[0] for col in column_definitions]
@@ -51,7 +50,7 @@ class Database:
             elif col_type == 'STRING' and not isinstance(value, str):
                 return False, f"Expected STRING for column '{col_name}', got {type(value).__name__}"
 
-        self.tables[table_name].append(row) # Append row to the table
+        self.tables[table_name].append(row) 
         return True, f"Inserted {row} into '{table_name}'"
 
     def delete_rows(self, table_name, condition_column, condition_value, condition_type):

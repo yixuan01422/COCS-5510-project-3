@@ -11,16 +11,14 @@ class DeleteHandler:
         condition_column = None
         condition_value = None
         condition_type = None
-        # Extract table name and condition
+
         for token in parsed.tokens:
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
                 table_name_token = parsed.token_next(parsed.token_index(token))[1]
                 if table_name_token:
                     table_name = table_name_token.value
             elif token.value.startswith('WHERE'):
-                print(token)
-                condition = token.value.replace("WHERE", "").strip()
-                condition = condition.replace(";", "")
+                condition = token.value.replace("WHERE", "").replace(";", "").strip()
                 
                 if ">=" in condition:
                     condition_type = ">="
@@ -48,6 +46,6 @@ class DeleteHandler:
             message = "Table name not found in DELETE FROM statement"
         if condition_column is None or condition_value is None:
             message = "Condition not found in DELETE FROM statement"
-        # Delete rows from the table based on the condition
+
         success, message = self.database.delete_rows(table_name, condition_column, condition_value, condition_type)
         print(message)
