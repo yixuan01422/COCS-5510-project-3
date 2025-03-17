@@ -1,5 +1,6 @@
 from ..database import Database
 import sqlparse
+from ..query_parser import parse_single_condition
 
 class DeleteHandler:
     def __init__(self, database: Database):
@@ -8,9 +9,10 @@ class DeleteHandler:
     def handle(self, parsed):
         """Handle DELETE FROM statements."""
         table_name = None
-        condition_column = None
-        condition_value = None
-        condition_type = None
+        condition_columns = []
+        condition_values = []
+        condition_types = []
+        logical_operator = None
 
         for token in parsed.tokens:
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
@@ -19,27 +21,21 @@ class DeleteHandler:
                     table_name = table_name_token.value
             elif token.value.startswith('WHERE'):
                 condition = token.value.replace("WHERE", "").replace(";", "").strip()
-                
-                if ">=" in condition:
-                    condition_type = ">="
-                    parts = condition.split(">=")
-                elif "<=" in condition:
-                    condition_type = "<="
-                    parts = condition.split("<=")
-                elif ">" in condition:
-                    condition_type = ">"
-                    parts = condition.split(">")
-                elif "<" in condition:
-                    condition_type = "<"
-                    parts = condition.split("<")
-                elif "=" in condition:
-                    condition_type = "="
-                    parts = condition.split("=")
+                lower_str = condition.lower()
+                if ' and ' in lower_str:
+                    condition_parts = condition.split(' and ')
+                    logical_operator = 'AND'
+                elif ' or ' in lower_str:
+                    condition_parts = condition.split(' or ')
+                    logical_operator = 'OR'
                 else:
-                    raise ValueError("Unsupported condition type in WHERE clause")
-
-                condition_column = parts[0].strip()
-                condition_value = parts[1].strip()
+                    # Only one condition
+                    condition_parts = [condition]
+                for part in condition_parts:
+                    condition_column, condition_value, condition_type = parse_single_condition(part)
+                    condition_columns.append(condition_column)
+                    condition_values.append(condition_value)
+                    condition_types.append(condition_type)
 
         message = None
         if table_name is None:
@@ -47,5 +43,5 @@ class DeleteHandler:
         if condition_column is None or condition_value is None:
             message = "Condition not found in DELETE FROM statement"
 
-        success, message = self.database.delete_rows(table_name, condition_column, condition_value, condition_type)
+        success, message = self.database.delete_rows(table_name, condition_columns, condition_values, condition_types, logical_operator)
         print(message)

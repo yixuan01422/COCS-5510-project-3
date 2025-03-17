@@ -16,7 +16,7 @@ def main():
     db.execute("INSERT INTO users VALUES (4, 'Cat', 50);")
     # db.execute("SELECT * FROM users;")
     db.execute("SELECT * FROM users WHERE id>2 or age<=25;")
-    db.execute("DELETE FROM users WHERE id<=1;")
+    db.execute("DELETE FROM users WHERE id<2 or age>30;")
     # db.execute("INSERT INTO agents VALUES  ( 'A', 'Ben', 35);")
     # db.execute("INSERT INTO agents VALUES  ( 'A', 'Ben', 45);") # for duplicate primary key testing /Expected: ERROR
     # db.execute("INSERT INTO agents VALUES ('C', 'Tucker', 84);")

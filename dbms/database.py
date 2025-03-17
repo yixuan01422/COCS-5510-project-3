@@ -53,44 +53,52 @@ class Database:
         self.tables[table_name].append(row) 
         return True, f"Inserted {row} into '{table_name}'"
 
-    def delete_rows(self, table_name, condition_column, condition_value, condition_type):
+    def delete_rows(self, table_name, condition_columns, condition_values, condition_types, logical_operator=None):
         """Delete rows from a table based on a condition."""
         if table_name not in self.tables:
             return False, f"Table '{table_name}' does not exist"
 
         column_definitions = self.columns[table_name]
-        column_names = [col[0] for col in column_definitions]
-        if condition_column not in column_names:
-            return False, f"Column '{condition_column}' not found in table '{table_name}'"
+        col_names = [col[0] for col in column_definitions]
 
-        condition_index = column_names.index(condition_column)
         deleted_count = 0
-        col_type = self.columns[table_name][condition_index][1]
-        if col_type == 'INT':
-            condition_value = int(condition_value)
-        if condition_type == '=':
-            condition_func = lambda row_value: row_value == condition_value
-        elif condition_type == '>':
-            condition_func = lambda row_value: row_value > condition_value
-        elif condition_type == '<':
-            condition_func = lambda row_value: row_value < condition_value
-        elif condition_type == '>=':
-            condition_func = lambda row_value: row_value >= condition_value
-        elif condition_type == '<=':
-            condition_func = lambda row_value: row_value <= condition_value
-
-
         i = 0
-        while i < len(self.tables[table_name]):
-            row = self.tables[table_name][i]
-            row_value = row[condition_index]
-            if condition_func(row_value):
-                self.tables[table_name].pop(i)
-                deleted_count += 1
-            else:
-                i += 1
+        if len(condition_columns) == 1:
+            condition_index, condition_func = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
+            while i < len(self.tables[table_name]):
+                row = self.tables[table_name][i]
+                row_value = row[condition_index]
+                if condition_func(row_value):
+                    self.tables[table_name].pop(i)
+                    deleted_count += 1
+                else:
+                    i += 1
+        elif len(condition_columns) == 2:
+            condition_index1, condition_func1 = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
+            condition_index2, condition_func2 = self.build_condition_func(table_name, col_names, condition_columns[1], condition_types[1], condition_values[1])
+            while i < len(self.tables[table_name]):
+                row = self.tables[table_name][i]
+                row_value1 = row[condition_index1]
+                row_value2 = row[condition_index2]
+                if logical_operator == 'AND':
+                    if condition_func1(row_value1) and condition_func2(row[row_value2]):
+                        self.tables[table_name].pop(i)
+                        deleted_count += 1
+                        print(row)
+                    else:
+                        i += 1
+                elif logical_operator == 'OR':
+                    if condition_func1(row_value1) or condition_func2(row_value2):
+                        self.tables[table_name].pop(i)
+                        deleted_count += 1
+                        print(row)
+                    else:
+                        i += 1
 
-        return True, f"Deleted {deleted_count} rows from '{table_name}' where {condition_column} {condition_type} {condition_value}"
+        
+        
+
+        return True, f"Deleted {deleted_count} rows from '{table_name}'"
 
 
     def select_rows(
