@@ -103,7 +103,7 @@ class Database:
 
     def select_rows(
         self, table_name, selected_columns, condition_columns=None, 
-        condition_values=None, condition_types=None, logical_operator=None
+        condition_values=None, condition_types=None, logical_operator=None, column_aliases=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
         if table_name not in self.tables:
