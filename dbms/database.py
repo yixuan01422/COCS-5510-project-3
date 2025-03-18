@@ -103,7 +103,7 @@ class Database:
 
     def select_rows(
         self, table_name, selected_columns, condition_columns=None, 
-        condition_values=None, condition_types=None, logical_operator=None, column_aliases=None
+        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
         if table_name not in self.tables:
@@ -146,6 +146,19 @@ class Database:
                     selected_data.append(row[col_idx])
             result_rows.append(selected_data)
 
+        if aggregation_operator:
+            if aggregation_operator == 'MIN':
+                agg_col_idx = selected_columns.index(aggregation_column)
+                min_value = min(row[agg_col_idx] for row in result_rows)
+                result_rows = [[min_value]]
+            elif aggregation_operator == 'MAX':
+                pass
+            elif aggregation_operator == 'AVG':
+                pass
+            elif aggregation_operator == 'SUM':
+                pass
+            elif aggregation_operator == 'COUNT':
+                pass
         return True, result_rows
     
     def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):

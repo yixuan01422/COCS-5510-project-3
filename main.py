@@ -22,7 +22,7 @@ def main():
     #need to fix
     #db.execute("SELECT id FROM users WHERE id > 2 OR age <= 25;")
 
-    db.execute("SELECT id FROM users WHERE id > 2 OR age <= 25;")
+    db.execute("SELECT MIN(age) AS min_age FROM users WHERE age > 30;")
 
 
 

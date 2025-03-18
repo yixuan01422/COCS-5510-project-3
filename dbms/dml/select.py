@@ -13,6 +13,8 @@ class SelectHandler:
         condition_columns = []
         condition_values = []
         condition_types = []
+        aggregation_operator = None
+        aggregation_column = None
         logical_operator = None
         column_aliases = {}  # Stores renamed column aliases
 
@@ -30,6 +32,11 @@ class SelectHandler:
                     parts = identifier.value.split(" AS ")
                     if len(parts) == 2:  # Handles column renaming
                         column_name, alias = parts[0].strip(), parts[1].strip()
+                        if '(' in column_name and ')' in column_name:
+                            aggregation_operator = column_name[:column_name.index('(')].upper()
+                            inner_column = column_name[column_name.index('(') + 1:column_name.index(')')]
+                            column_name = inner_column
+                            aggregation_column = column_name
                         column_aliases[column_name] = alias
                         selected_columns.append(column_name)
                     else:
@@ -41,6 +48,11 @@ class SelectHandler:
                 parts = token.value.split(" AS ")
                 if len(parts) == 2:
                     column_name, alias = parts[0].strip(), parts[1].strip()
+                    if '(' in column_name and ')' in column_name:
+                        aggregation_operator = column_name[:column_name.index('(')].upper()
+                        inner_column = column_name[column_name.index('(') + 1:column_name.index(')')]
+                        column_name = inner_column
+                        aggregation_column = column_name
                     column_aliases[column_name] = alias
                     selected_columns.append(column_name)
                 else:
@@ -75,7 +87,7 @@ class SelectHandler:
         if table_name not in self.database.tables:
             raise ValueError(f"Table '{table_name}' does not exist in the database")
 
-        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator)
+        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator, aggregation_operator, aggregation_column)
         if success:
             for i in range(len(selected_columns)):
                 if selected_columns[i] in column_aliases:
