@@ -17,17 +17,51 @@ class SelectHandler:
         aggregation_column = None
         logical_operator = None
         column_aliases = {}  # Stores renamed column aliases
+        order_column = None
+        ascending = True
 
         for token in parsed.tokens:
             #Support rename select
+            print(token)
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
                 table_name_token = parsed.token_next(parsed.token_index(token))[1]
                 if table_name_token:
                     table_name = table_name_token.get_real_name()
+
+
+            elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'ORDER BY':
+                order_column_token = parsed.token_next(parsed.token_index(token))[1]
+
+                if order_column_token:
+                    # ✅ Check if ASC/DESC is combined in one token
+                    #order_column_parts = order_column_token.value.split()
+                    order_column = order_column_token.get_real_name()
+
+                    order_column_parts = order_column_token.value.split()
+
+                    print(f"DEBUG: Extracted ORDER BY Column -> {order_column}")
+                    
+                    #order_column = order_column_parts[0]  # First part is column name
+                    #ascending = True  # Default to ASC
+
+                    if len(order_column_parts) > 1:
+                        # ✅ Manually extract ASC/DESC
+                        if order_column_parts[1].upper() == 'DESC':
+                            ascending = False
+                        elif order_column_parts[1].upper() == 'ASC':
+                            ascending = True
+                
+                print(f"DEBUG: Extracted ORDER BY Column -> {order_column}")
+
+                print(f"DEBUG: ORDER BY Column Detected: {order_column}, Ascending: {ascending}")
+
+
             #mulitple 
             elif isinstance(token, sqlparse.sql.IdentifierList):
                 for identifier in token.get_identifiers():
                     if table_name and identifier.get_real_name().upper() == table_name.upper():
+                        continue
+                    if order_column and identifier.get_real_name().upper() == order_column.upper():
                         continue
                     parts = identifier.value.split(" AS ")
                     if len(parts) == 2:  # Handles column renaming
@@ -45,6 +79,8 @@ class SelectHandler:
             elif isinstance(token, sqlparse.sql.Identifier):
                 if table_name and token.get_real_name().upper() == table_name.upper():
                     continue
+                if order_column and token.get_real_name().upper() == order_column.upper():
+                        continue
                 parts = token.value.split(" AS ")
                 if len(parts) == 2:
                     column_name, alias = parts[0].strip(), parts[1].strip()
@@ -58,6 +94,7 @@ class SelectHandler:
                 else:
                     selected_columns.append(token.get_real_name())
                     print(token)
+                
     
             elif token.value == '*':
                 selected_columns = ['*']
@@ -87,13 +124,19 @@ class SelectHandler:
         if table_name not in self.database.tables:
             raise ValueError(f"Table '{table_name}' does not exist in the database")
 
-        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator, aggregation_operator, aggregation_column)
+        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator, aggregation_operator, aggregation_column, order_column, ascending)
         if success:
             for i in range(len(selected_columns)):
                 if selected_columns[i] in column_aliases:
                     selected_columns[i] = column_aliases[selected_columns[i]]
 
-            print(selected_columns)
+            if selected_columns[0] == "*":
+                #print(self.database.columns[table_name])
+                columns = [col[0] for col in self.database.columns[table_name]]
+                print (columns)
+            else:
+                print(selected_columns)
             for row in message:
                 print(row)
+            
 

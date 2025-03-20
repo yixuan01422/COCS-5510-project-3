@@ -103,7 +103,7 @@ class Database:
 
     def select_rows(
         self, table_name, selected_columns, condition_columns=None, 
-        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None
+        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending= True
     ):
         """Select rows from a table based on columns and optional condition(s)."""
         if table_name not in self.tables:
@@ -167,7 +167,34 @@ class Database:
                 agg_col_idx = selected_columns.index(aggregation_column)
                 count_value = len(result_rows)
                 result_rows = [[count_value]]
-                
+
+        if order_column:
+            print(f"\nDEBUG: ORDER BY Column Detected: {order_column}, Ascending: {ascending}")
+
+            if order_column not in col_names:
+                raise ValueError(f"ERROR: Order by column '{order_column}' is not in the table columns {col_names}")
+
+            # ✅ Get correct index from selected_columns (not full table)
+            if order_column in selected_columns:
+                order_col_idx = selected_columns.index(order_column)
+            else:
+                order_col_idx = col_names.index(order_column)  # Fallback if all columns are selected
+
+            try:
+                sorted_rows = sorted(
+                    result_rows,
+                    key=lambda x: (
+                        int(x[order_col_idx]) if str(x[order_col_idx]).isdigit() else str(x[order_col_idx]).lower()
+                    ),
+                    reverse=not ascending  # ✅ Flip order if DESC
+                )
+                result_rows[:] = sorted_rows  # ✅ Modify `result_rows` in-place
+            except Exception as e:
+                print(f"Sorting Error: {e}")
+
+            # ✅ Debugging After Sorting
+            print(f"DEBUG: After Sorting: {result_rows}")
+
         return True, result_rows
     
     def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):
