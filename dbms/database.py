@@ -108,13 +108,11 @@ class Database:
         """Select rows from a table based on columns and optional condition(s)."""
         if table_name not in self.tables:
             return False, f"Table '{table_name}' does not exist."
-
         rows = self.tables[table_name]
         col_definitions = self.columns[table_name]
         col_names = [col[0] for col in col_definitions]
-
         filtered_rows = []
-        
+      
         if len(condition_columns) == 0:
             filtered_rows = rows
         elif len(condition_columns) == 1:
@@ -133,10 +131,26 @@ class Database:
                 elif logical_operator == 'OR':
                     if condition_func1(row[condition_index1]) or condition_func2(row[condition_index2]):
                         filtered_rows.append(row)
+                        
+        if order_column:
+        
+            if order_column not in col_names:
+                raise ValueError(f"ERROR: Order by column '{order_column}' is not in the table columns {col_names}")
+
+            if order_column in selected_columns:
+                order_col_idx = selected_columns.index(order_column)
+            else:
+                order_col_idx = col_names.index(order_column)  
+
+            filtered_rows = sorted(
+                    filtered_rows,
+                    key=lambda x: (x[order_col_idx]),
+                    reverse=not ascending  
+            )
 
         if len(selected_columns) == 1 and selected_columns[0] == '*':
             return True, filtered_rows
-
+      
         result_rows = []
         for row in filtered_rows:
             selected_data = []
@@ -145,7 +159,7 @@ class Database:
                     col_idx = col_names.index(col)
                     selected_data.append(row[col_idx])
             result_rows.append(selected_data)
-
+        
         if aggregation_operator:
             if aggregation_operator == 'MIN':
                 agg_col_idx = selected_columns.index(aggregation_column)
@@ -167,36 +181,9 @@ class Database:
                 agg_col_idx = selected_columns.index(aggregation_column)
                 count_value = len(result_rows)
                 result_rows = [[count_value]]
-
-        if order_column:
-            print(f"\nDEBUG: ORDER BY Column Detected: {order_column}, Ascending: {ascending}")
-
-            if order_column not in col_names:
-                raise ValueError(f"ERROR: Order by column '{order_column}' is not in the table columns {col_names}")
-
-            # ✅ Get correct index from selected_columns (not full table)
-            if order_column in selected_columns:
-                order_col_idx = selected_columns.index(order_column)
-            else:
-                order_col_idx = col_names.index(order_column)  # Fallback if all columns are selected
-
-            try:
-                sorted_rows = sorted(
-                    result_rows,
-                    key=lambda x: (
-                        int(x[order_col_idx]) if str(x[order_col_idx]).isdigit() else str(x[order_col_idx]).lower()
-                    ),
-                    reverse=not ascending  # ✅ Flip order if DESC
-                )
-                result_rows[:] = sorted_rows  # ✅ Modify `result_rows` in-place
-            except Exception as e:
-                print(f"Sorting Error: {e}")
-
-            # ✅ Debugging After Sorting
-            print(f"DEBUG: After Sorting: {result_rows}")
-
         return True, result_rows
-    
+        
+        
     def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):
         condition_index = col_names.index(condition_column)
         col_type = self.columns[table_name][condition_index][1]

@@ -22,7 +22,6 @@ class SelectHandler:
 
         for token in parsed.tokens:
             #Support rename select
-            print(token)
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
                 table_name_token = parsed.token_next(parsed.token_index(token))[1]
                 if table_name_token:
@@ -33,30 +32,18 @@ class SelectHandler:
                 order_column_token = parsed.token_next(parsed.token_index(token))[1]
 
                 if order_column_token:
-                    # ✅ Check if ASC/DESC is combined in one token
-                    #order_column_parts = order_column_token.value.split()
+
                     order_column = order_column_token.get_real_name()
 
                     order_column_parts = order_column_token.value.split()
 
-                    print(f"DEBUG: Extracted ORDER BY Column -> {order_column}")
-                    
-                    #order_column = order_column_parts[0]  # First part is column name
-                    #ascending = True  # Default to ASC
 
                     if len(order_column_parts) > 1:
-                        # ✅ Manually extract ASC/DESC
                         if order_column_parts[1].upper() == 'DESC':
                             ascending = False
                         elif order_column_parts[1].upper() == 'ASC':
                             ascending = True
-                
-                print(f"DEBUG: Extracted ORDER BY Column -> {order_column}")
 
-                print(f"DEBUG: ORDER BY Column Detected: {order_column}, Ascending: {ascending}")
-
-
-            #mulitple 
             elif isinstance(token, sqlparse.sql.IdentifierList):
                 for identifier in token.get_identifiers():
                     if table_name and identifier.get_real_name().upper() == table_name.upper():
@@ -64,7 +51,7 @@ class SelectHandler:
                     if order_column and identifier.get_real_name().upper() == order_column.upper():
                         continue
                     parts = identifier.value.split(" AS ")
-                    if len(parts) == 2:  # Handles column renaming
+                    if len(parts) == 2:  
                         column_name, alias = parts[0].strip(), parts[1].strip()
                         if '(' in column_name and ')' in column_name:
                             aggregation_operator = column_name[:column_name.index('(')].upper()
@@ -75,12 +62,12 @@ class SelectHandler:
                         selected_columns.append(column_name)
                     else:
                         selected_columns.append(identifier.get_real_name())
-            #Single
+
             elif isinstance(token, sqlparse.sql.Identifier):
                 if table_name and token.get_real_name().upper() == table_name.upper():
                     continue
                 if order_column and token.get_real_name().upper() == order_column.upper():
-                        continue
+                    continue
                 parts = token.value.split(" AS ")
                 if len(parts) == 2:
                     column_name, alias = parts[0].strip(), parts[1].strip()

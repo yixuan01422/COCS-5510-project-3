@@ -11,7 +11,7 @@ def main():
     # # Insert data
     db.execute("INSERT INTO users VALUES  ( 2, 'Alice', 25);")
     db.execute("INSERT INTO users VALUES  ( 2, 'Tom', 19);") # for duplicate primary key testing /Expected: ERROR
-    db.execute("INSERT INTO users VALUES (1), 'Bob', 40);")
+    db.execute("INSERT INTO users VALUES (1, 'Bob', 40);")
     db.execute("INSERT INTO users VALUES (4, 'Dog', 19);")
     db.execute("INSERT INTO users VALUES (3, 'Cat', 50);")
     # db.execute("SELECT * FROM users;")
@@ -22,7 +22,7 @@ def main():
     #need to fix
     #db.execute("SELECT id FROM users WHERE id > 2 OR age <= 25;")
 
-    #db.execute("SELECT MAX(age) AS min_age FROM users")
+    db.execute("SELECT MIN(age) AS min_age FROM users")
     #db.execute("SELECT COUNT(name) AS count_name FROM users")
     #db.execute("SELECT SUM(id) AS sum_id FROM users")
     
@@ -31,7 +31,7 @@ def main():
    
     db.execute("SELECT * FROM users ORDER BY age ASC;")
     db.execute("SELECT * FROM users ORDER BY name DESC;")
-
+    db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY name DESC;")
 
     # db.execute("INSERT INTO agents VALUES  ( 'A', 'Ben', 35);")
     # db.execute("INSERT INTO agents VALUES  ( 'A', 'Ben', 45);") # for duplicate primary key testing /Expected: ERROR
