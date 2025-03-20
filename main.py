@@ -22,7 +22,10 @@ def main():
     #need to fix
     #db.execute("SELECT id FROM users WHERE id > 2 OR age <= 25;")
 
-    db.execute("SELECT MIN(age) AS min_age FROM users WHERE age > 30;")
+    db.execute("SELECT MAX(age) AS min_age FROM users")
+    db.execute("SELECT COUNT(name) AS count_name FROM users")
+    db.execute("SELECT SUM(id) AS sum_id FROM users")
+    db.execute("SELECT AVG(age) AS avg_age FROM users")
 
 
 

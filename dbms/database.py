@@ -152,13 +152,22 @@ class Database:
                 min_value = min(row[agg_col_idx] for row in result_rows)
                 result_rows = [[min_value]]
             elif aggregation_operator == 'MAX':
-                pass
+                agg_col_idx = selected_columns.index(aggregation_column)
+                max_value = max(row[agg_col_idx] for row in result_rows)
+                result_rows = [[max_value]]
             elif aggregation_operator == 'AVG':
-                pass
+                agg_col_idx = selected_columns.index(aggregation_column)
+                avg_value = (sum(row[agg_col_idx] for row in result_rows))/ (len(result_rows))
+                result_rows = [[avg_value]]
             elif aggregation_operator == 'SUM':
-                pass
+                agg_col_idx = selected_columns.index(aggregation_column)
+                sum_value = sum(row[agg_col_idx] for row in result_rows)
+                result_rows = [[sum_value]]
             elif aggregation_operator == 'COUNT':
-                pass
+                agg_col_idx = selected_columns.index(aggregation_column)
+                count_value = len(result_rows)
+                result_rows = [[count_value]]
+                
         return True, result_rows
     
     def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):
