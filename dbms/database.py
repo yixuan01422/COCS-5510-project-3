@@ -131,23 +131,21 @@ class Database:
                 elif logical_operator == 'OR':
                     if condition_func1(row[condition_index1]) or condition_func2(row[condition_index2]):
                         filtered_rows.append(row)
-                        
+             
         if order_column:
         
             if order_column not in col_names:
                 raise ValueError(f"ERROR: Order by column '{order_column}' is not in the table columns {col_names}")
 
-            if order_column in selected_columns:
-                order_col_idx = selected_columns.index(order_column)
-            else:
-                order_col_idx = col_names.index(order_column)  
+
+            order_col_idx = col_names.index(order_column)  
 
             filtered_rows = sorted(
                     filtered_rows,
                     key=lambda x: (x[order_col_idx]),
-                    reverse=not ascending  
+                    reverse= not ascending  
             )
-
+        print(filtered_rows)
         if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
             selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
             for i in range(len(filtered_rows)):
@@ -169,10 +167,11 @@ class Database:
                 group_result.append(group_key)
                 
                 if aggregation_operator:
-                    agg_col_idx = col_names.index(aggregation_column)
-                    group_values = [row[agg_col_idx] for row in group_rows]
+                    if not aggregation_column == '*':
+                        agg_col_idx = col_names.index(aggregation_column)
+                        group_values = [row[agg_col_idx] for row in group_rows]
                     if aggregation_operator == 'COUNT':
-                        agg_value = len(group_values)
+                        agg_value = len(group_rows)
                     elif aggregation_operator == 'SUM':
                         agg_value = sum(group_values)
                     elif aggregation_operator == 'AVG':

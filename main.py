@@ -22,7 +22,7 @@ def main():
     #db.execute("SELECT id FROM users WHERE id > 2 OR age <= 25;")
 
     # db.execute("SELECT MIN(age) FROM users")
-    # db.execute("SELECT COUNT(*) AS count_name FROM users")
+    # db.execute("SELECT COUNT(*) FROM users")
     # db.execute("SELECT SUM(id) AS sum_id FROM users")
     
     # db.execute("SELECT AVG(age) AS avg_age FROM users")
@@ -30,9 +30,9 @@ def main():
    
     # db.execute("SELECT * FROM users ORDER BY age ASC;")
     # db.execute("SELECT * FROM users ORDER BY name DESC;")
-    # db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY name DESC;")
+    # db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id;")
     # db.execute("SELECT age, SUM(age) FROM users GROUP BY age;")
-    db.execute("SELECT age, COUNT(name) FROM users WHERE age < 50 GROUP BY age;")
+    db.execute("SELECT age, COUNT(*) FROM users WHERE age < 50 GROUP BY age ORDER BY age;")
 
 
 
