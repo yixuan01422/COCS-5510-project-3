@@ -16,75 +16,86 @@ class SelectHandler:
         aggregation_operator = None
         aggregation_column = None
         logical_operator = None
-        column_aliases = {}  # Stores renamed column aliases
+        column_aliases = {}  
         order_column = None
         ascending = True
+        group_by_column = None
 
+        
+        from_token = None
         for token in parsed.tokens:
-            #Support rename select
+            if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
+                from_token = token
+                break
+        
+        if not from_token:
+            raise ValueError("FROM clause not found in SELECT statement")
+
+       
+        from_idx = parsed.token_index(from_token)
+        select_tokens = parsed.tokens[:from_idx]
+
+        for token in select_tokens:
+            if isinstance(token, sqlparse.sql.IdentifierList):
+                for identifier in token.get_identifiers():
+                    parts = identifier.value.split(" AS ")
+                    if '(' in identifier.value and ')' in identifier.value:
+                        aggregation_operator = identifier.value[:identifier.value.index('(')].upper()
+                        column_name = identifier.value[identifier.value.index('(') + 1:identifier.value.index(')')]
+                        aggregation_column = column_name
+                    else:
+                        column_name = parts[0].strip()
+                    
+                    if len(parts) == 2:  
+                        _, alias = parts[0].strip(), parts[1].strip()
+                        column_aliases[column_name] = alias
+                        selected_columns.append(column_name)
+                    else:
+                        if aggregation_operator:
+                            column_aliases[column_name] = identifier.value
+                        selected_columns.append(column_name)
+            elif isinstance(token, sqlparse.sql.Identifier) or (hasattr(token, 'value') and '(' in token.value and ')' in token.value):
+                parts = token.value.split(" AS ")
+                if '(' in token.value and ')' in token.value:
+                    aggregation_operator = token.value[:token.value.index('(')].upper()
+                    column_name = token.value[token.value.index('(') + 1:token.value.index(')')]
+                    aggregation_column = column_name
+                else:
+                    column_name = parts[0].strip()
+                
+                if len(parts) == 2:
+                    _, alias = parts[0].strip(), parts[1].strip()
+                    column_aliases[column_name] = alias
+                    selected_columns.append(column_name)
+                else:
+                    if aggregation_operator:
+                        column_aliases[column_name] = token.value
+                    selected_columns.append(column_name)
+                
+            elif token.value == '*':
+                selected_columns = ['*']
+
+        
+        from_onwards_tokens = parsed.tokens[from_idx:]
+        for token in from_onwards_tokens:
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
                 table_name_token = parsed.token_next(parsed.token_index(token))[1]
                 if table_name_token:
                     table_name = table_name_token.get_real_name()
-
-
             elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'ORDER BY':
                 order_column_token = parsed.token_next(parsed.token_index(token))[1]
-
                 if order_column_token:
-
                     order_column = order_column_token.get_real_name()
-
                     order_column_parts = order_column_token.value.split()
-
-
                     if len(order_column_parts) > 1:
                         if order_column_parts[1].upper() == 'DESC':
                             ascending = False
                         elif order_column_parts[1].upper() == 'ASC':
                             ascending = True
-
-            elif isinstance(token, sqlparse.sql.IdentifierList):
-                for identifier in token.get_identifiers():
-                    if table_name and identifier.get_real_name().upper() == table_name.upper():
-                        continue
-                    if order_column and identifier.get_real_name().upper() == order_column.upper():
-                        continue
-                    parts = identifier.value.split(" AS ")
-                    if len(parts) == 2:  
-                        column_name, alias = parts[0].strip(), parts[1].strip()
-                        if '(' in column_name and ')' in column_name:
-                            aggregation_operator = column_name[:column_name.index('(')].upper()
-                            inner_column = column_name[column_name.index('(') + 1:column_name.index(')')]
-                            column_name = inner_column
-                            aggregation_column = column_name
-                        column_aliases[column_name] = alias
-                        selected_columns.append(column_name)
-                    else:
-                        selected_columns.append(identifier.get_real_name())
-
-            elif isinstance(token, sqlparse.sql.Identifier):
-                if table_name and token.get_real_name().upper() == table_name.upper():
-                    continue
-                if order_column and token.get_real_name().upper() == order_column.upper():
-                    continue
-                parts = token.value.split(" AS ")
-                if len(parts) == 2:
-                    column_name, alias = parts[0].strip(), parts[1].strip()
-                    if '(' in column_name and ')' in column_name:
-                        aggregation_operator = column_name[:column_name.index('(')].upper()
-                        inner_column = column_name[column_name.index('(') + 1:column_name.index(')')]
-                        column_name = inner_column
-                        aggregation_column = column_name
-                    column_aliases[column_name] = alias
-                    selected_columns.append(column_name)
-                else:
-                    selected_columns.append(token.get_real_name())
-                    print(token)
-                
-    
-            elif token.value == '*':
-                selected_columns = ['*']
+            elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'GROUP BY':
+                group_by_column_token = parsed.token_next(parsed.token_index(token))[1]
+                if group_by_column_token:
+                    group_by_column = group_by_column_token.get_real_name()
             elif token.value.startswith('WHERE'):
                 condition = token.value.replace("WHERE", "").replace(";", "").strip()
                 lower_str = condition.lower()
@@ -95,7 +106,6 @@ class SelectHandler:
                     condition_parts = condition.split(' or ')
                     logical_operator = 'OR'
                 else:
-                    # Only one condition
                     condition_parts = [condition]
 
                 for part in condition_parts:
@@ -110,8 +120,8 @@ class SelectHandler:
 
         if table_name not in self.database.tables:
             raise ValueError(f"Table '{table_name}' does not exist in the database")
-
-        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator, aggregation_operator, aggregation_column, order_column, ascending)
+        
+        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator, aggregation_operator, aggregation_column, order_column, ascending, group_by_column)
         if success:
             for i in range(len(selected_columns)):
                 if selected_columns[i] in column_aliases:

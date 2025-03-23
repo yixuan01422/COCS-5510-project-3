@@ -103,7 +103,7 @@ class Database:
 
     def select_rows(
         self, table_name, selected_columns, condition_columns=None, 
-        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending= True
+        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending=True, group_by_column=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
         if table_name not in self.tables:
@@ -148,40 +148,68 @@ class Database:
                     reverse=not ascending  
             )
 
-        if len(selected_columns) == 1 and selected_columns[0] == '*':
-            return True, filtered_rows
+        if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
+            selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
+            for i in range(len(filtered_rows)):
+                filtered_rows[i] = [filtered_rows[i][idx] for idx in selected_indices]
       
-        result_rows = []
-        for row in filtered_rows:
-            selected_data = []
-            for col in selected_columns:
-                if col in col_names:
-                    col_idx = col_names.index(col)
-                    selected_data.append(row[col_idx])
-            result_rows.append(selected_data)
         
-        if aggregation_operator:
+        if group_by_column:
+            group_col_idx = selected_columns.index(group_by_column)
+            grouped_data = {}
+            for row in filtered_rows:
+                group_key = row[group_col_idx]
+                if group_key not in grouped_data:
+                    grouped_data[group_key] = []
+                grouped_data[group_key].append(row)
+            
+            final_results = []
+            for group_key, group_rows in grouped_data.items():
+                group_result = []
+                group_result.append(group_key)
+                
+                if aggregation_operator:
+                    agg_col_idx = col_names.index(aggregation_column)
+                    group_values = [row[agg_col_idx] for row in group_rows]
+                    if aggregation_operator == 'COUNT':
+                        agg_value = len(group_values)
+                    elif aggregation_operator == 'SUM':
+                        agg_value = sum(group_values)
+                    elif aggregation_operator == 'AVG':
+                        agg_value = sum(group_values) / len(group_values)
+                    elif aggregation_operator == 'MIN':
+                        agg_value = min(group_values)
+                    elif aggregation_operator == 'MAX':
+                        agg_value = max(group_values)
+                    
+                    group_result.append(agg_value)
+                
+                final_results.append(group_result)
+            
+            filtered_rows = final_results
+            
+        elif aggregation_operator:
             if aggregation_operator == 'MIN':
                 agg_col_idx = selected_columns.index(aggregation_column)
-                min_value = min(row[agg_col_idx] for row in result_rows)
-                result_rows = [[min_value]]
+                min_value = min(row[agg_col_idx] for row in filtered_rows)
+                filtered_rows = [[min_value]]
             elif aggregation_operator == 'MAX':
                 agg_col_idx = selected_columns.index(aggregation_column)
-                max_value = max(row[agg_col_idx] for row in result_rows)
-                result_rows = [[max_value]]
+                max_value = max(row[agg_col_idx] for row in filtered_rows)
+                filtered_rows = [[max_value]]
             elif aggregation_operator == 'AVG':
                 agg_col_idx = selected_columns.index(aggregation_column)
-                avg_value = (sum(row[agg_col_idx] for row in result_rows))/ (len(result_rows))
-                result_rows = [[avg_value]]
+                avg_value = sum(row[agg_col_idx] for row in filtered_rows) / len(filtered_rows)
+                filtered_rows = [[avg_value]]
             elif aggregation_operator == 'SUM':
                 agg_col_idx = selected_columns.index(aggregation_column)
-                sum_value = sum(row[agg_col_idx] for row in result_rows)
-                result_rows = [[sum_value]]
+                sum_value = sum(row[agg_col_idx] for row in filtered_rows)
+                filtered_rows = [[sum_value]]
             elif aggregation_operator == 'COUNT':
-                agg_col_idx = selected_columns.index(aggregation_column)
-                count_value = len(result_rows)
-                result_rows = [[count_value]]
-        return True, result_rows
+                count_value = len(filtered_rows)
+                filtered_rows = [[count_value]]
+                
+        return True, filtered_rows
         
         
     def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):
