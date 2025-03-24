@@ -63,47 +63,40 @@ class Database:
 
         deleted_count = 0
         i = 0
-        if len(condition_columns) == 1:
-            condition_index, condition_func = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
-            while i < len(self.tables[table_name]):
-                row = self.tables[table_name][i]
-                row_value = row[condition_index]
-                if condition_func(row_value):
-                    self.tables[table_name].pop(i)
-                    deleted_count += 1
-                else:
-                    i += 1
-        elif len(condition_columns) == 2:
-            condition_index1, condition_func1 = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
-            condition_index2, condition_func2 = self.build_condition_func(table_name, col_names, condition_columns[1], condition_types[1], condition_values[1])
-            while i < len(self.tables[table_name]):
-                row = self.tables[table_name][i]
-                row_value1 = row[condition_index1]
-                row_value2 = row[condition_index2]
-                if logical_operator == 'AND':
-                    if condition_func1(row_value1) and condition_func2(row[row_value2]):
-                        self.tables[table_name].pop(i)
-                        deleted_count += 1
-                        print(row)
-                    else:
-                        i += 1
-                elif logical_operator == 'OR':
-                    if condition_func1(row_value1) or condition_func2(row_value2):
-                        self.tables[table_name].pop(i)
-                        deleted_count += 1
-                        print(row)
-                    else:
-                        i += 1
 
-        
-        
+        for i, col in enumerate(condition_columns):
+            col_idx = col_names.index(col)
+            if self.columns[table_name][col_idx][1] == 'INT':
+                condition_values[i] = int(condition_values[i])
+
+        while i < len(self.tables[table_name]):
+            row = self.tables[table_name][i]
+            results = [
+                self.compare_values(
+                    row[col_names.index(col)], 
+                    condition_values[j], 
+                    condition_types[j]
+                )
+                for j, col in enumerate(condition_columns)
+            ]
+
+            should_delete = (len(results) == 1 and results[0]) or \
+                          (logical_operator == 'AND' and all(results)) or \
+                          (logical_operator == 'OR' and any(results))
+            
+            if should_delete:
+                self.tables[table_name].pop(i)
+                deleted_count += 1
+            else:
+                i += 1
 
         return True, f"Deleted {deleted_count} rows from '{table_name}'"
 
 
     def select_rows(
         self, table_name, selected_columns, condition_columns=None, 
-        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending=True, group_by_column=None
+        condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending=True, group_by_column=None, 
+        having_condition_columns=None, having_condition_values=None, having_condition_types=None, having_aggregation_operator=None, having_logical_operator=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
         if table_name not in self.tables:
@@ -115,22 +108,24 @@ class Database:
       
         if len(condition_columns) == 0:
             filtered_rows = rows
-        elif len(condition_columns) == 1:
-            condition_index, condition_func = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
-            for row in rows:
-                if condition_func(row[condition_index]):
-                    filtered_rows.append(row)
-        elif len(condition_columns) == 2:
-            condition_index1, condition_func1 = self.build_condition_func(table_name, col_names, condition_columns[0], condition_types[0], condition_values[0])
-            condition_index2, condition_func2 = self.build_condition_func(table_name, col_names, condition_columns[1], condition_types[1], condition_values[1])
+        else:
+            for i, col in enumerate(condition_columns):
+                col_idx = col_names.index(col)
+                if self.columns[table_name][col_idx][1] == 'INT':
+                    condition_values[i] = int(condition_values[i])
 
             for row in rows:
-                if logical_operator == 'AND':
-                    if condition_func1(row[condition_index1]) and condition_func2(row[condition_index2]):
-                        filtered_rows.append(row)
-                elif logical_operator == 'OR':
-                    if condition_func1(row[condition_index1]) or condition_func2(row[condition_index2]):
-                        filtered_rows.append(row)
+                results = [
+                    self.compare_values(
+                        row[col_names.index(col)], 
+                        condition_values[i], 
+                        condition_types[i]
+                    )
+                    for i, col in enumerate(condition_columns)
+                ]
+
+                if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
+                    filtered_rows.append(row)
              
         if order_column:
         
@@ -145,86 +140,93 @@ class Database:
                     key=lambda x: (x[order_col_idx]),
                     reverse= not ascending  
             )
-        print(filtered_rows)
-        if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
-            selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
-            for i in range(len(filtered_rows)):
-                filtered_rows[i] = [filtered_rows[i][idx] for idx in selected_indices]
-      
+
         
         if group_by_column:
-            group_col_idx = selected_columns.index(group_by_column)
+            group_col_idx = col_names.index(group_by_column)
             grouped_data = {}
             for row in filtered_rows:
                 group_key = row[group_col_idx]
                 if group_key not in grouped_data:
                     grouped_data[group_key] = []
                 grouped_data[group_key].append(row)
-            
+
             final_results = []
             for group_key, group_rows in grouped_data.items():
-                group_result = []
-                group_result.append(group_key)
+            
+                having_values = []
+                for i, agg_op in enumerate(having_aggregation_operator):
+                    agg_value = self.cal_aggregation(agg_op, having_condition_columns[i], group_rows, col_names)
+                    having_values.append(agg_value)
                 
-                if aggregation_operator:
-                    if not aggregation_column == '*':
-                        agg_col_idx = col_names.index(aggregation_column)
-                        group_values = [row[agg_col_idx] for row in group_rows]
-                    if aggregation_operator == 'COUNT':
-                        agg_value = len(group_rows)
-                    elif aggregation_operator == 'SUM':
-                        agg_value = sum(group_values)
-                    elif aggregation_operator == 'AVG':
-                        agg_value = sum(group_values) / len(group_values)
-                    elif aggregation_operator == 'MIN':
-                        agg_value = min(group_values)
-                    elif aggregation_operator == 'MAX':
-                        agg_value = max(group_values)
+                include_group = True
+                if len(having_values) == 1:
+                    condition_value = float(having_condition_values[0])
+                    include_group = self.compare_values(having_values[0], condition_value, having_condition_types[0])
+                elif len(having_values) == 2:
+                    condition_value1 = float(having_condition_values[0])
+                    condition_value2 = float(having_condition_values[1])
                     
-                    group_result.append(agg_value)
-                
-                final_results.append(group_result)
-            
-            filtered_rows = final_results
-            
+                    result1 = self.compare_values(having_values[0], condition_value1, having_condition_types[0])
+                    result2 = self.compare_values(having_values[1], condition_value2, having_condition_types[1])
+
+                    if having_logical_operator == 'AND':
+                        include_group = result1 and result2
+                    elif having_logical_operator == 'OR':
+                        include_group = result1 or result2
+
+                if include_group:
+                    group_result = []
+                    group_result.append(group_key)
+                    if aggregation_operator:
+                        agg_value = self.cal_aggregation(aggregation_operator, aggregation_column, group_rows, col_names)
+                        group_result.append(agg_value)
+                    final_results.append(group_result)
+
+            return True, final_results
         elif aggregation_operator:
-            if aggregation_operator == 'MIN':
-                agg_col_idx = selected_columns.index(aggregation_column)
-                min_value = min(row[agg_col_idx] for row in filtered_rows)
-                filtered_rows = [[min_value]]
-            elif aggregation_operator == 'MAX':
-                agg_col_idx = selected_columns.index(aggregation_column)
-                max_value = max(row[agg_col_idx] for row in filtered_rows)
-                filtered_rows = [[max_value]]
-            elif aggregation_operator == 'AVG':
-                agg_col_idx = selected_columns.index(aggregation_column)
-                avg_value = sum(row[agg_col_idx] for row in filtered_rows) / len(filtered_rows)
-                filtered_rows = [[avg_value]]
-            elif aggregation_operator == 'SUM':
-                agg_col_idx = selected_columns.index(aggregation_column)
-                sum_value = sum(row[agg_col_idx] for row in filtered_rows)
-                filtered_rows = [[sum_value]]
-            elif aggregation_operator == 'COUNT':
-                count_value = len(filtered_rows)
-                filtered_rows = [[count_value]]
-                
+            agg_value = self.cal_aggregation(aggregation_operator, aggregation_column, filtered_rows, selected_columns)
+            filtered_rows = [[agg_value]]
+        
+        
+        if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
+            selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
+            for i in range(len(filtered_rows)):
+                filtered_rows[i] = [filtered_rows[i][idx] for idx in selected_indices]
+
         return True, filtered_rows
         
         
-    def build_condition_func(self, table_name, col_names, condition_column, condition_type, condition_value):
-        condition_index = col_names.index(condition_column)
-        col_type = self.columns[table_name][condition_index][1]
-        if col_type == 'INT':
-            condition_value = int(condition_value)
-        if  condition_type == '=':
-            condition_func = lambda row_value: row_value == condition_value
-        elif condition_type == '>':
-            condition_func = lambda row_value: row_value > condition_value
-        elif condition_type == '<':
-            condition_func = lambda row_value: row_value < condition_value
-        elif condition_type == '>=':
-            condition_func = lambda row_value: row_value >= condition_value
-        elif condition_type == '<=':
-            condition_func = lambda row_value: row_value <= condition_value   
+    def cal_aggregation(self, aggregation_operator, aggregation_column, group_rows, col_names):
+        """Calculate aggregation value for a group of rows."""
+        if not aggregation_column == '*':
+            agg_col_idx = col_names.index(aggregation_column)
+            group_values = [row[agg_col_idx] for row in group_rows]
+            
+        if aggregation_operator == 'COUNT':
+            return len(group_rows)
+        elif aggregation_operator == 'SUM':
+            return sum(group_values)
+        elif aggregation_operator == 'AVG':
+            return sum(group_values) / len(group_values)
+        elif aggregation_operator == 'MIN':
+            return min(group_values)
+        elif aggregation_operator == 'MAX':
+            return max(group_values)
 
-        return condition_index, condition_func
+    def compare_values(self, value1, value2, operator):
+        """Compare two values using the specified operator.
+        """
+        match operator:
+            case '>':
+                return value1 > value2
+            case '>=':
+                return value1 >= value2
+            case '<':
+                return value1 < value2
+            case '<=':
+                return value1 <= value2
+            case '=':
+                return value1 == value2
+            case _:
+                raise ValueError(f"Unsupported comparison operator: {operator}")

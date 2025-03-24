@@ -20,8 +20,19 @@ class SelectHandler:
         order_column = None
         ascending = True
         group_by_column = None
+        having_condition_columns = []
+        having_condition_values = []
+        having_condition_types = []
+        having_aggregation_operator = []
+        having_logical_operator = None
 
-        
+        """
+        break the query into two parts
+        query:SELECT column1, column2, ... FROM table_name WHERE condition;
+        =>
+        part1: SELECT column1, column2, ... 
+        part2:FROM table_name WHERE condition;
+        """
         from_token = None
         for token in parsed.tokens:
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
@@ -31,14 +42,13 @@ class SelectHandler:
         if not from_token:
             raise ValueError("FROM clause not found in SELECT statement")
 
-       
         from_idx = parsed.token_index(from_token)
         select_tokens = parsed.tokens[:from_idx]
-
+        #handle part1
         for token in select_tokens:
-            if isinstance(token, sqlparse.sql.IdentifierList):
+            if isinstance(token, sqlparse.sql.IdentifierList): #handle select more than one column
                 for identifier in token.get_identifiers():
-                    parts = identifier.value.split(" AS ")
+                    parts = identifier.value.split(" AS ")#handle rename
                     if '(' in identifier.value and ')' in identifier.value:
                         aggregation_operator = identifier.value[:identifier.value.index('(')].upper()
                         column_name = identifier.value[identifier.value.index('(') + 1:identifier.value.index(')')]
@@ -46,7 +56,7 @@ class SelectHandler:
                     else:
                         column_name = parts[0].strip()
                     
-                    if len(parts) == 2:  
+                    if len(parts) == 2: #handle rename 
                         _, alias = parts[0].strip(), parts[1].strip()
                         column_aliases[column_name] = alias
                         selected_columns.append(column_name)
@@ -55,7 +65,8 @@ class SelectHandler:
                             column_aliases[column_name] = identifier.value
                         selected_columns.append(column_name)
             elif isinstance(token, sqlparse.sql.Identifier) or (hasattr(token, 'value') and '(' in token.value and ')' in token.value):
-                parts = token.value.split(" AS ")
+                #handle select one column
+                parts = token.value.split(" AS ") #handle rename
                 if '(' in token.value and ')' in token.value:
                     aggregation_operator = token.value[:token.value.index('(')].upper()
                     column_name = token.value[token.value.index('(') + 1:token.value.index(')')]
@@ -63,7 +74,7 @@ class SelectHandler:
                 else:
                     column_name = parts[0].strip()
                 
-                if len(parts) == 2:
+                if len(parts) == 2: #handle rename
                     _, alias = parts[0].strip(), parts[1].strip()
                     column_aliases[column_name] = alias
                     selected_columns.append(column_name)
@@ -75,10 +86,10 @@ class SelectHandler:
             elif token.value == '*':
                 selected_columns = ['*']
 
-        
+        #handle part2
         from_onwards_tokens = parsed.tokens[from_idx:]
         for token in from_onwards_tokens:
-            if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
+            if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM': #extract table name
                 table_name_token = parsed.token_next(parsed.token_index(token))[1]
                 if table_name_token:
                     table_name = table_name_token.get_real_name()
@@ -100,28 +111,78 @@ class SelectHandler:
                 condition = token.value.replace("WHERE", "").replace(";", "").strip()
                 lower_str = condition.lower()
                 if ' and ' in lower_str:
-                    condition_parts = condition.split(' and ')
+                    condition_parts = lower_str.split(' and ')
                     logical_operator = 'AND'
                 elif ' or ' in lower_str:
-                    condition_parts = condition.split(' or ')
+                    condition_parts = lower_str.split(' or ')
                     logical_operator = 'OR'
                 else:
                     condition_parts = [condition]
-
+                
                 for part in condition_parts:
                     condition_column, condition_value, condition_type = parse_single_condition(part)
                     condition_columns.append(condition_column)
                     condition_values.append(condition_value)
                     condition_types.append(condition_type)
+            elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'HAVING':
+                
+                having_idx = parsed.token_index(token)
 
+                agg_token = parsed.token_next(having_idx)[1]
+                if agg_token:
+                    agg_str = agg_token.value
+                    agg_part = agg_str[:agg_str.index(')')+ 1]  
+                    having_aggregation_operator.append(agg_part[:agg_part.index('(')].upper())
+                    column = agg_part[agg_part.index('(')+1:agg_part.index(')')]
+                    having_condition_columns.append(column)
+                    
+                    remaining = agg_str[agg_str.index(')')+1:].strip()
+                    comparison_op = remaining.split()[0]
+                    value = remaining.split()[1]
+                    having_condition_types.append(comparison_op)
+                    having_condition_values.append(value)
+                
+                condition_token = parsed.token_next(parsed.token_index(agg_token))[1]
+                if condition_token.value == 'AND' or condition_token.value == 'OR':
+                    having_logical_operator = condition_token.value
+                    
+                    second_agg_token = parsed.token_next(parsed.token_index(condition_token))[1]
+                    if second_agg_token:
+                        agg_str = second_agg_token.value
+                        agg_part = agg_str[:agg_str.index(')')+ 1]  
+                        having_aggregation_operator.append(agg_part[:agg_part.index('(')].upper())
+                        column = agg_part[agg_part.index('(')+1:agg_part.index(')')]
+                        having_condition_columns.append(column)
+                        
+                        remaining = agg_str[agg_str.index(')')+1:].strip()
+                        comparison_op = remaining.split()[0]
+                        value = remaining.split()[1]
+                        having_condition_types.append(comparison_op)
+                        having_condition_values.append(value)
 
         if table_name is None:
             raise ValueError("Table name not found in SELECT statement")
 
         if table_name not in self.database.tables:
             raise ValueError(f"Table '{table_name}' does not exist in the database")
-        
-        success, message = self.database.select_rows(table_name, selected_columns, condition_columns, condition_values, condition_types, logical_operator, aggregation_operator, aggregation_column, order_column, ascending, group_by_column)
+        success, message = self.database.select_rows(
+            table_name, 
+            selected_columns, 
+            condition_columns, 
+            condition_values, 
+            condition_types, 
+            logical_operator, 
+            aggregation_operator, 
+            aggregation_column, 
+            order_column, 
+            ascending, 
+            group_by_column,
+            having_condition_columns,
+            having_condition_values,
+            having_condition_types,
+            having_aggregation_operator,
+            having_logical_operator
+        )
         if success:
             for i in range(len(selected_columns)):
                 if selected_columns[i] in column_aliases:
