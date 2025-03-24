@@ -13,8 +13,9 @@ class SelectHandler:
         condition_columns = []
         condition_values = []
         condition_types = []
-        aggregation_operator = None
-        aggregation_column = None
+        # Modified to support multiple aggregations
+        aggregation_operators = []
+        aggregation_columns = []
         logical_operator = None
         column_aliases = {}  
         order_column = None
@@ -49,40 +50,44 @@ class SelectHandler:
             if isinstance(token, sqlparse.sql.IdentifierList): #handle select more than one column
                 for identifier in token.get_identifiers():
                     parts = identifier.value.split(" AS ")#handle rename
+                    agg_op = None
                     if '(' in identifier.value and ')' in identifier.value:
-                        aggregation_operator = identifier.value[:identifier.value.index('(')].upper()
+                        # Extract aggregation function and column
+                        agg_op = identifier.value[:identifier.value.index('(')].upper()
                         column_name = identifier.value[identifier.value.index('(') + 1:identifier.value.index(')')]
-                        aggregation_column = column_name
+                        aggregation_operators.append(agg_op)
+                        aggregation_columns.append(column_name)
                     else:
                         column_name = parts[0].strip()
+                    selected_columns.append(column_name)
                     
                     if len(parts) == 2: #handle rename 
                         _, alias = parts[0].strip(), parts[1].strip()
                         column_aliases[column_name] = alias
-                        selected_columns.append(column_name)
                     else:
-                        if aggregation_operator:
+                        if agg_op:
                             column_aliases[column_name] = identifier.value
-                        selected_columns.append(column_name)
+                        
             elif isinstance(token, sqlparse.sql.Identifier) or (hasattr(token, 'value') and '(' in token.value and ')' in token.value):
                 #handle select one column
                 parts = token.value.split(" AS ") #handle rename
+                agg_op = None
                 if '(' in token.value and ')' in token.value:
-                    aggregation_operator = token.value[:token.value.index('(')].upper()
+                    # Extract aggregation function and column
+                    agg_op = token.value[:token.value.index('(')].upper()
                     column_name = token.value[token.value.index('(') + 1:token.value.index(')')]
-                    aggregation_column = column_name
+                    aggregation_operators.append(agg_op)
+                    aggregation_columns.append(column_name)
                 else:
                     column_name = parts[0].strip()
+                selected_columns.append(column_name)
                 
-                if len(parts) == 2: #handle rename
-                    _, alias = parts[0].strip(), parts[1].strip()
-                    column_aliases[column_name] = alias
-                    selected_columns.append(column_name)
+                if len(parts) == 2: #handle rename 
+                        _, alias = parts[0].strip(), parts[1].strip()
+                        column_aliases[column_name] = alias
                 else:
-                    if aggregation_operator:
+                    if agg_op:
                         column_aliases[column_name] = token.value
-                    selected_columns.append(column_name)
-                
             elif token.value == '*':
                 selected_columns = ['*']
 
@@ -165,6 +170,7 @@ class SelectHandler:
 
         if table_name not in self.database.tables:
             raise ValueError(f"Table '{table_name}' does not exist in the database")
+
         success, message = self.database.select_rows(
             table_name, 
             selected_columns, 
@@ -172,8 +178,8 @@ class SelectHandler:
             condition_values, 
             condition_types, 
             logical_operator, 
-            aggregation_operator, 
-            aggregation_column, 
+            aggregation_operators,  
+            aggregation_columns,    
             order_column, 
             ascending, 
             group_by_column,

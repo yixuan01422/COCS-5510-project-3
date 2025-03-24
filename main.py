@@ -19,13 +19,13 @@ def main():
     db.execute("INSERT INTO users VALUES (7, 'Man', 27);")
     # db.execute("SELECT * FROM users WHERE id > 3 or age <= 25;")
     # db.execute("SELECT id FROM users WHERE id<2 or age>=25;")
-    db.execute("DELETE FROM users WHERE age=31;")
+    # db.execute("DELETE FROM users WHERE age=31;")
     # db.execute("SELECT name, id AS N FROM users WHERE age < 30;")
     
     # db.execute("SELECT * FROM users WHERE id > 2 AND age <= 25;")
 
     # db.execute("SELECT MIN(age) FROM users")
-    # db.execute("SELECT COUNT(*) FROM users")
+    db.execute("SELECT COUNT(*), SUM(id) FROM users WHERE age > 25;")
     # db.execute("SELECT SUM(id) AS sum_id FROM users")
     
     # db.execute("SELECT AVG(age) AS avg_age FROM users")
@@ -35,7 +35,7 @@ def main():
     # db.execute("SELECT * FROM users ORDER BY name DESC;")
     # db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id;")
     # db.execute("SELECT age, SUM(age) FROM users GROUP BY age;")
-    #db.execute("SELECT age, AVG(id) FROM users WHERE age < 27 GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
+    # db.execute("SELECT age, AVG(id), COUNT(*) FROM users GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
 
 
 

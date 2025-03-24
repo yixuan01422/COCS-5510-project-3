@@ -179,14 +179,28 @@ class Database:
                     group_result = []
                     group_result.append(group_key)
                     if aggregation_operator:
-                        agg_value = self.cal_aggregation(aggregation_operator, aggregation_column, group_rows, col_names)
-                        group_result.append(agg_value)
+                        for i in range(len(aggregation_operator)):
+                            agg_value = self.cal_aggregation(
+                                aggregation_operator[i], 
+                                aggregation_column[i], 
+                                group_rows, 
+                                col_names
+                            )
+                            group_result.append(agg_value)
                     final_results.append(group_result)
 
             return True, final_results
         elif aggregation_operator:
-            agg_value = self.cal_aggregation(aggregation_operator, aggregation_column, filtered_rows, selected_columns)
-            filtered_rows = [[agg_value]]
+            result_rows = [[]]
+            for i in range(len(aggregation_operator)):
+                            agg_value = self.cal_aggregation(
+                                aggregation_operator[i], 
+                                aggregation_column[i], 
+                                filtered_rows, 
+                                col_names
+                            )
+                            result_rows[0].append(agg_value)
+            return True, result_rows
         
         
         if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
