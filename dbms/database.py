@@ -231,16 +231,15 @@ class Database:
     def compare_values(self, value1, value2, operator):
         """Compare two values using the specified operator.
         """
-        match operator:
-            case '>':
-                return value1 > value2
-            case '>=':
-                return value1 >= value2
-            case '<':
-                return value1 < value2
-            case '<=':
-                return value1 <= value2
-            case '=':
-                return value1 == value2
-            case _:
-                raise ValueError(f"Unsupported comparison operator: {operator}")
+        if operator == '>':
+            return value1 > value2
+        elif operator == '>=':
+            return value1 >= value2
+        elif operator == '<':
+            return value1 < value2
+        elif operator == '<=':
+            return value1 <= value2
+        elif operator == '=':
+            return value1 == value2
+        else:
+            raise ValueError(f"Unsupported comparison operator: {operator}")
