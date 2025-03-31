@@ -1,3 +1,4 @@
+import copy
 class Database:
     def __init__(self):
         self.tables = {} 
@@ -96,11 +97,11 @@ class Database:
 
         col_names = [col[0] for col in self.columns[table_name]]
         primary_key = self.primary_keys.get(table_name)
-
-        matching_rows = []
-        untouched_rows = []
-
-        for row in self.tables[table_name]:
+        cnt = 0
+        if primary_key in set_columns:
+            backup_rows = copy.deepcopy(self.tables[table_name])
+        for i in range(len(self.tables[table_name])):
+            row = self.tables[table_name][i]
             match_results = [
                 self.compare_values(
                     row[col_names.index(condition_columns[i])],
@@ -114,24 +115,20 @@ class Database:
                             (logical_operator == 'OR' and any(match_results))
 
             if should_update:
-                updated_row = list(row)
+                cnt+=1
+                pk_values = []
+                if primary_key in set_columns:
+                    pk_index = col_names.index(primary_key)
+                    pk_values = set(row[pk_index] for row in self.tables[table_name])
                 for i, col in enumerate(set_columns):
+                    if col == primary_key:
+                        if set_values[i] in pk_values:
+                            self.tables[table_name] = backup_rows
+                            return False, f"ERROR: Duplicate entry for PRIMARY KEY '{primary_key}' in UPDATE"
                     idx = col_names.index(col)
-                    updated_row[idx] = set_values[i]
-                matching_rows.append(updated_row)
-            else:
-                untouched_rows.append(row)
+                    row[idx] = set_values[i]
 
-        if primary_key:
-            pk_index = col_names.index(primary_key)
-            pk_values = set(row[pk_index] for row in untouched_rows)
-            for row in matching_rows:
-                if row[pk_index] in pk_values:
-                    return False, f"ERROR: Duplicate entry for PRIMARY KEY '{primary_key}' in UPDATE"
-
-        self.tables[table_name] = untouched_rows
-        self.tables[table_name].extend(matching_rows)
-        return True, f"Updated {len(matching_rows)} rows in '{table_name}'"
+        return True, f"Updated {cnt} rows in '{table_name}'"
 
 
 
