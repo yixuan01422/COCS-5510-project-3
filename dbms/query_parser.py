@@ -31,4 +31,9 @@ def parse_single_condition(condition: str):
 
     condition_column = parts[0].strip()
     condition_value = parts[1].strip()
+
+    #for where in update to handle ''
+    if condition_value.startswith("'") and condition_value.endswith("'"):
+        condition_value = condition_value[1:-1]
+
     return condition_column, condition_value, condition_type

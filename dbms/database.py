@@ -90,7 +90,54 @@ class Database:
             else:
                 i += 1
 
+        print(results)
         return True, f"Deleted {deleted_count} rows from '{table_name}'"
+    
+    def update_rows(self, table_name, condition_columns, condition_values, condition_types, set_columns, set_values, logical_operator=None):
+        if table_name not in self.tables:
+            return False, f"Table '{table_name}' does not exist"
+
+        col_names = [col[0] for col in self.columns[table_name]]
+        primary_key = self.primary_keys.get(table_name)
+
+        matching_rows = []
+        untouched_rows = []
+
+        print(table_name)
+
+        for row in self.tables[table_name]:
+            match_results = [
+                self.compare_values(
+                    row[col_names.index(condition_columns[i])],
+                    int(condition_values[i]) if self.columns[table_name][col_names.index(condition_columns[i])][1] == 'INT' else condition_values[i],
+                    condition_types[i]
+                ) for i in range(len(condition_columns))
+            ]
+            
+            should_update = (len(match_results) == 1 and match_results[0]) or \
+                            (logical_operator == 'AND' and all(match_results)) or \
+                            (logical_operator == 'OR' and any(match_results))
+
+            if should_update:
+                updated_row = list(row)
+                for i, col in enumerate(set_columns):
+                    idx = col_names.index(col)
+                    updated_row[idx] = set_values[i]
+                matching_rows.append(updated_row)
+            else:
+                untouched_rows.append(row)
+
+        if primary_key:
+            pk_index = col_names.index(primary_key)
+            pk_values = set(row[pk_index] for row in untouched_rows)
+            for row in matching_rows:
+                if row[pk_index] in pk_values:
+                    return False, f"ERROR: Duplicate entry for PRIMARY KEY '{primary_key}' in UPDATE"
+
+        self.tables[table_name] = untouched_rows
+        self.tables[table_name].extend(matching_rows)
+        return True, f"Updated {len(matching_rows)} rows in '{table_name}'"
+
 
 
     def select_rows(
