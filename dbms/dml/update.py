@@ -22,7 +22,7 @@ class UpdateHandler:
 
       
         for idx, token in enumerate(parsed.tokens):
-            print(token)
+            # print(token)
             if token.value.upper() == 'UPDATE':
                 next_token_tuple = parsed.token_next(idx, skip_ws=True, skip_cm=True)
                 if next_token_tuple:
@@ -32,13 +32,6 @@ class UpdateHandler:
                     elif next_token.ttype in (sqlparse.tokens.Name, sqlparse.tokens.Keyword):
                         table_name = next_token.value
 
-                    print(f"DEBUG: token = {token}")
-                    print(f"DEBUG: table_name_token = {next_token}, type = {type(next_token)}")
-                    print(f"DEBUG: Extracted table name -> {table_name}")
-
-
-                 
-            #elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'SET':
             elif token.match(sqlparse.tokens.Keyword, 'SET'):
                 next_token = parsed.token_next(idx, skip_ws=True)[1]
                 if isinstance(next_token, sqlparse.sql.IdentifierList):
@@ -58,31 +51,27 @@ class UpdateHandler:
                             set_values.append(val.strip("'"))
                         else:
                             raise ValueError(f"Invalid value format in SET clause: {val}")
-                        print("DEBUG: Set Columns:", set_columns)
-                        print("DEBUG: Set Values:", set_values)
+                        
 
                 
             elif token.value.upper().startswith('WHERE'):
-                #condition = token.value.replace("WHERE", "").replace(";", "").strip()
-                condition = token.value[5:].strip().rstrip(';')
+                condition = token.value.replace("WHERE", "").replace(";", "").strip()
                 lower_str = condition.lower()
                 if ' and ' in lower_str:
-                    condition_parts = condition.split(' and ')
+                    condition_parts = lower_str.split(' and ')
                     logical_operator = 'AND'
                 elif ' or ' in lower_str:
-                    condition_parts = condition.split(' or ')
+                    condition_parts = lower_str.split(' or ')
                     logical_operator = 'OR'
                 else:
-                    # need to handle 0 to 2 conditons
                     condition_parts = [condition]
+                
                 for part in condition_parts:
                     condition_column, condition_value, condition_type = parse_single_condition(part)
                     condition_columns.append(condition_column)
                     condition_values.append(condition_value)
                     condition_types.append(condition_type)
-                print("DEBUG: Condition Columns:", condition_columns)
-                print("DEBUG: Condition Values:", condition_values)
-                print("DEBUG: Condition Types:", condition_types)
+
 
         message = None
         if table_name is None:

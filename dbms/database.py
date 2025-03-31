@@ -90,20 +90,15 @@ class Database:
             else:
                 i += 1
 
-        print(results)
         return True, f"Deleted {deleted_count} rows from '{table_name}'"
     
     def update_rows(self, table_name, condition_columns, condition_values, condition_types, set_columns, set_values, logical_operator=None):
-        if table_name not in self.tables:
-            return False, f"Table '{table_name}' does not exist"
 
         col_names = [col[0] for col in self.columns[table_name]]
         primary_key = self.primary_keys.get(table_name)
 
         matching_rows = []
         untouched_rows = []
-
-        print(table_name)
 
         for row in self.tables[table_name]:
             match_results = [
