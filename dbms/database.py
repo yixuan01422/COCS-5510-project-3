@@ -122,7 +122,7 @@ class Database:
                     pk_values = set(row[pk_index] for row in self.tables[table_name])
                 for i, col in enumerate(set_columns):
                     if col == primary_key:
-                        if i == pk_index and set_values[i] in pk_values:
+                        if set_values[i] in pk_values:
                             self.tables[table_name] = backup_rows
                             return False, f"ERROR: Duplicate entry for PRIMARY KEY '{primary_key}' in UPDATE"
                     idx = col_names.index(col)
