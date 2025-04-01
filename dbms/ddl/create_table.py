@@ -9,6 +9,10 @@ class CreateTableHandler:
         table_name = None  # Stores the table name
         columns = []  # Stores column definitions
         primary_key = None  # Stores the primary key column name
+        foreign_keys = None  # Stores foreign key definitions
+        reference_table = None  # Stores reference definitions
+        reference_column = None  # Stores reference column name
+        on_delete_action = None  # Stores ON DELETE action
 
         # Iterate through the parsed SQL tokens
         for token in parsed.tokens:
@@ -24,6 +28,7 @@ class CreateTableHandler:
                 column_lines = column_definitions.split(",")  # Split by comma
 
                 for line in column_lines:
+                    print(line)
                     parts = line.strip().split()
                     
                     # Ensure at least column name and type exist
