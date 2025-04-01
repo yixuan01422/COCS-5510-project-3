@@ -47,7 +47,7 @@ def main():
     db.execute("SELECT * FROM users;")
     #db.execute("UPDATE users SET age=28 WHERE name='Alice';")
     #db.execute("UPDATE users SET age=38, name='Robert' WHERE id=2;")
-    db.execute("UPDATE users SET id=60, name='Rob' WHERE age=31 or age=27;") # this is the one that's not working
+    db.execute("UPDATE users SET id=60, name='Rob' WHERE name='Kobe';") # this is the one that's not working
     #db.execute("UPDATE users SET id=9 WHERE name='Man';")
     db.execute("SELECT * FROM users;")
 

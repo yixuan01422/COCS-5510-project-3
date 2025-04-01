@@ -52,7 +52,6 @@ class UpdateHandler:
                         else:
                             raise ValueError(f"Invalid value format in SET clause: {val}")
                         
-
                 
             elif token.value.upper().startswith('WHERE'):
                 condition = token.value.replace("WHERE", "").replace(";", "").strip()
@@ -69,9 +68,10 @@ class UpdateHandler:
                 for part in condition_parts:
                     condition_column, condition_value, condition_type = parse_single_condition(part)
                     condition_columns.append(condition_column)
-                    condition_values.append(condition_value)
+                    condition_values.append(condition_value.strip("'"))
                     condition_types.append(condition_type)
 
+                    
 
         message = None
         if table_name is None:
