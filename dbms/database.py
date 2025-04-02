@@ -3,15 +3,17 @@ class Database:
     def __init__(self):
         self.tables = {} 
         self.columns = {}  
-        self.primary_keys = {}  
+        self.primary_keys = {}
+        self.foreign_keys = {}   #added 
 
-    def create_table(self, table_name, columns, primary_key=None): 
+    def create_table(self, table_name, columns, primary_key=None, foreign_keys=None): 
         """Create a new table."""
         if table_name in self.tables:
             return False, f"ERROR: Table '{table_name}' already exists"
         self.columns[table_name] = columns
         self.tables[table_name] = [] 
-        self.primary_keys[table_name] = primary_key  
+        self.primary_keys[table_name] = primary_key
+        self.foreign_keys[table_name] = foreign_keys or [] #added  
 
         return True, f"Table '{table_name}' created with PRIMARY KEY: {primary_key}"
 
@@ -51,6 +53,23 @@ class Database:
             elif col_type == 'STRING' and not isinstance(value, str):
                 return False, f"Expected STRING for column '{col_name}', got {type(value).__name__}"
 
+        # Foreign key checks
+        for fk in self.foreign_keys.get(table_name, []):
+            fk_col = fk['column']
+            ref_table = fk['ref_table']
+            ref_col = fk['ref_column']
+
+            fk_index = [col[0] for col in self.columns[table_name]].index(fk_col)
+            fk_value = row[fk_index]
+
+            if ref_table not in self.tables:
+                return False, f"ERROR: Referenced table '{ref_table}' does not exist"
+
+            ref_col_index = [col[0] for col in self.columns[ref_table]].index(ref_col)
+            if all(r[ref_col_index] != fk_value for r in self.tables[ref_table]):
+                return False, f"ERROR: Foreign key constraint fails on '{fk_col}' referencing '{ref_table}({ref_col})'"
+
+
         self.tables[table_name].append(row) 
         return True, f"Inserted {row} into '{table_name}'"
 
@@ -85,7 +104,43 @@ class Database:
                           (logical_operator == 'AND' and all(results)) or \
                           (logical_operator == 'OR' and any(results))
             
+
+
             if should_delete:
+                # BEFORE self.tables[table_name].pop(i)
+                # Check foreign key dependencies
+                for dependent_table, fks in self.foreign_keys.items():
+                    for fk in fks:
+                        if fk['ref_table'] == table_name:
+                            ref_col = fk['ref_column']
+                            on_delete = fk['on_delete']
+                            fk_col = fk['column']
+                            ref_index = [col[0] for col in self.columns[table_name]].index(ref_col)
+                            ref_value = row[ref_index]
+
+                            if on_delete == 'CASCADE':
+                                # Delete matching rows from dependent table
+                                self.tables[dependent_table] = [
+                                    r for r in self.tables[dependent_table]
+                                    if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] != ref_value
+                                ]
+                            elif on_delete == 'SET NULL':
+                                print(f"SET NULL triggered for FK {dependent_table}.{fk_col} where value = {ref_value}")
+                                # Set FK column to None
+                                fk_index = [col[0] for col in self.columns[dependent_table]].index(fk_col)
+                                for r in self.tables[dependent_table]:
+                                    #if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] == ref_value:
+                                    #    r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] = None
+                                    if r[fk_index] == ref_value:
+                                        print(f" - Setting NULL for row: {r}")
+                                        r[fk_index] = None
+
+                            elif on_delete == 'NO ACTION':
+                                for r in self.tables[dependent_table]:
+                                    if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] == ref_value:
+                                        return False, f"ERROR: Cannot delete from '{table_name}' due to FOREIGN KEY constraint in '{dependent_table}'"
+                print(f"[DEBUG] Foreign key map: {self.foreign_keys}")
+
                 self.tables[table_name].pop(i)
                 deleted_count += 1
             else:
