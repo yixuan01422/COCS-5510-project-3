@@ -188,35 +188,108 @@ class Database:
 
 
     def select_rows(
-        self, table_name, selected_columns, condition_columns=None, 
+        self, table_name,  expanded_selected_columns, selected_columns, condition_columns=None, 
         condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending=True, group_by_column=None, 
-        having_condition_columns=None, having_condition_values=None, having_condition_types=None, having_aggregation_operator=None, having_logical_operator=None
+        having_condition_columns=None, having_condition_values=None, having_condition_types=None, having_aggregation_operator=None, having_logical_operator=None, condition_value_types=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
-        if table_name not in self.tables:
+        #if table_name not in self.tables:
+        if not all(tbl in self.tables for tbl in table_name):
             return False, f"Table '{table_name}' does not exist."
-        rows = self.tables[table_name]
-        col_definitions = self.columns[table_name]
-        col_names = [col[0] for col in col_definitions]
+
+        if len(table_name) == 1:
+            t1 = table_name[0]
+            rows = self.tables[t1]
+            col_names = [col[0] for col in self.columns[t1]]
+            full_col_names = col_names[:]
+        elif len(table_name) == 2:
+            t1, t2 = table_name
+            rows = [r1 + r2 for r1 in self.tables[t1] for r2 in self.tables[t2]]
+            col_names = [f"{t1}.{col[0]}" for col in self.columns[t1]] + [f"{t2}.{col[0]}" for col in self.columns[t2]]
+            full_col_names = col_names[:]
+        else:
+            return False, "Only support up to 2-table SELECT."
+
         filtered_rows = []
-      
-        if len(condition_columns) == 0:
+
+        #if len(condition_columns) == 0:
+        if not condition_columns:
             filtered_rows = rows
         else:
+            #for i, col in enumerate(condition_columns):
+            #    col_idx = col_names.index(col)
+            #    if self.columns[table_name_selected][col_idx][1] == 'INT':
+            #        condition_values[i] = int(condition_values[i])
+            
             for i, col in enumerate(condition_columns):
-                col_idx = col_names.index(col)
-                if self.columns[table_name][col_idx][1] == 'INT':
-                    condition_values[i] = int(condition_values[i])
+                if '.' in condition_values[i]:
+                    comp_col = condition_values[i]
+        
+                    if '.' not in col: 
+                        for t in table_name:
+                            if col in [c[0] for c in self.columns[t]]:
+                                col = f"{t}.{col}"
+                                break
+                    if '.' not in comp_col: 
+                        for t in table_name:
+                            if comp_col in [c[0] for c in self.columns[t]]:
+                                comp_col = f"{t}.{comp_col}"
+                                break
+
+                    #condition_columns[i] = full_col_name
+                    condition_columns[i] = col
+                    condition_values[i] = comp_col
+                else:
+                    if '.' not in col:
+                        for t in table_name:
+                            if col in [c[0] for c in self.columns[t]]:
+                                col = f"{t}.{col}"
+                                break
+
+                    condition_columns[i] = col
+
+                    col_type = None
+                    for t in table_name:
+                        for c_name, c_type in self.columns[t]:
+                            #if c_name == col_name:
+                            if c_name == col.split('.')[-1]:
+                                col_type = c_type
+                                break
+                        if col_type:
+                            break
+
+                    if col_type == 'INT' and not isinstance(condition_values[i], int):
+                        try:
+                            condition_values[i] = int(condition_values[i])
+                        except ValueError:
+                            #pass
+                            return False, f"Type casting failed for column '{col}'"
+
+            print("[DEBUG] Full Col Names:", full_col_names)
+            print("[DEBUG] Condition Cols:", condition_columns)
+            print("[DEBUG] Condition Values:", condition_values)
+            print("[DEBUG] Condition Types:", condition_types)
+            print("[DEBUG] Condition Value Types:", condition_value_types)
+          
 
             for row in rows:
+                print("[DEBUG] Row being checked:", row)
                 results = [
                     self.compare_values(
-                        row[col_names.index(col)], 
+                        #row[col_names.index(col)], 
+                        row[full_col_names.index(condition_columns[i])],
                         condition_values[i], 
-                        condition_types[i]
+                        operator=condition_types[i],
+                        row=row, 
+                        col_names=full_col_names,
+                        value2_type=condition_value_types[i] if condition_value_types else None
                     )
                     for i, col in enumerate(condition_columns)
                 ]
+                print("[DEBUG] Row matched conditions?", results)
+                print("[DEBUG] logical_operator:", logical_operator)
+                print("[DEBUG] condition results:", results)
+
 
                 if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
                     filtered_rows.append(row)
@@ -295,12 +368,19 @@ class Database:
                             )
                             result_rows[0].append(agg_value)
             return True, result_rows
-        
+
         
         if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
-            selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
+            #selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
+            selected_indices = [col_names.index(col) for col in expanded_selected_columns if col in col_names]
             for i in range(len(filtered_rows)):
                 filtered_rows[i] = [filtered_rows[i][idx] for idx in selected_indices]
+            print("[DEBUG] Expanded Selected Columns:", expanded_selected_columns)
+            print("[DEBUG] Selected Indices:", selected_indices)
+            if filtered_rows:
+                print("[DEBUG] Sample Selected Row:", filtered_rows[0])
+
+
 
         return True, filtered_rows
         
@@ -322,9 +402,15 @@ class Database:
         elif aggregation_operator == 'MAX':
             return max(group_values)
 
-    def compare_values(self, value1, value2, operator):
+    def compare_values(self, value1, value2, operator, row=None, col_names=None, value2_type=None):
         """Compare two values using the specified operator.
         """
+        # If value2 is a column reference
+        if value2_type == 'COLUMN':
+            if row is None or col_names is None:
+                raise ValueError("Missing row or col_names for COLUMN comparison")
+            value2 = row[col_names.index(value2)]
+
         if operator == '>':
             return value1 > value2
         elif operator == '>=':
