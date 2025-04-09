@@ -53,7 +53,7 @@ def main():
     # # db.execute("SELECT * FROM users ORDER BY name DESC;")
     # # db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id;")
     # # db.execute("SELECT age, SUM(age) FROM users GROUP BY age;")
-    # # db.execute("SELECT age, AVG(id), COUNT(*) FROM users GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
+    #db.execute("SELECT age, AVG(id), COUNT(*) FROM users GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
     # #db.execute("UPDATE users SET age=31 WHERE id=3;")
     # db.execute("SELECT * FROM users;")
     # #db.execute("UPDATE users SET age=28 WHERE name='Alice';")

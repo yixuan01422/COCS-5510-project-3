@@ -190,7 +190,7 @@ class Database:
     def select_rows(
         self, table_name,  expanded_selected_columns, selected_columns, condition_columns=None, 
         condition_values=None, condition_types=None, logical_operator=None, aggregation_operator=None, aggregation_column=None, order_column=None, ascending=True, group_by_column=None, 
-        having_condition_columns=None, having_condition_values=None, having_condition_types=None, having_aggregation_operator=None, having_logical_operator=None, condition_value_types=None
+        having_condition_columns=None, having_condition_values=None, having_condition_types=None, having_aggregation_operator=None, having_logical_operator=None, condition_value_types=None, table_alias_map=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
         #if table_name not in self.tables:
@@ -209,7 +209,7 @@ class Database:
             full_col_names = col_names[:]
         else:
             return False, "Only support up to 2-table SELECT."
-
+        # print("[DEBUG] Full Col Names:", full_col_names)
         filtered_rows = []
 
         #if len(condition_columns) == 0:
@@ -265,30 +265,26 @@ class Database:
                             #pass
                             return False, f"Type casting failed for column '{col}'"
 
-            print("[DEBUG] Full Col Names:", full_col_names)
-            print("[DEBUG] Condition Cols:", condition_columns)
-            print("[DEBUG] Condition Values:", condition_values)
-            print("[DEBUG] Condition Types:", condition_types)
-            print("[DEBUG] Condition Value Types:", condition_value_types)
+            # print("[DEBUG] Full Col Names:", full_col_names)
+            # print("[DEBUG] Condition Cols:", condition_columns)
+            # print("[DEBUG] Condition Values:", condition_values)
+            # print("[DEBUG] Condition Types:", condition_types)
+            # print("[DEBUG] Condition Value Types:", condition_value_types)
           
-
             for row in rows:
-                print("[DEBUG] Row being checked:", row)
+                # print("[DEBUG] Row being checked:", row)
                 results = [
+                    # Resolve value2 if it's a column reference, then compare
                     self.compare_values(
-                        #row[col_names.index(col)], 
                         row[full_col_names.index(condition_columns[i])],
-                        condition_values[i], 
-                        operator=condition_types[i],
-                        row=row, 
-                        col_names=full_col_names,
-                        value2_type=condition_value_types[i] if condition_value_types else None
+                        row[full_col_names.index(condition_values[i])] if (condition_value_types and condition_value_types[i] == 'COLUMN') else condition_values[i],
+                        operator=condition_types[i]
                     )
                     for i, col in enumerate(condition_columns)
                 ]
-                print("[DEBUG] Row matched conditions?", results)
-                print("[DEBUG] logical_operator:", logical_operator)
-                print("[DEBUG] condition results:", results)
+                # print("[DEBUG] Row matched conditions?", results)
+                # print("[DEBUG] logical_operator:", logical_operator)
+                # print("[DEBUG] condition results:", results)
 
 
                 if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
@@ -375,10 +371,10 @@ class Database:
             selected_indices = [col_names.index(col) for col in expanded_selected_columns if col in col_names]
             for i in range(len(filtered_rows)):
                 filtered_rows[i] = [filtered_rows[i][idx] for idx in selected_indices]
-            print("[DEBUG] Expanded Selected Columns:", expanded_selected_columns)
-            print("[DEBUG] Selected Indices:", selected_indices)
-            if filtered_rows:
-                print("[DEBUG] Sample Selected Row:", filtered_rows[0])
+            # print("[DEBUG] Expanded Selected Columns:", expanded_selected_columns)
+            # print("[DEBUG] Selected Indices:", selected_indices)
+            # if filtered_rows:
+            #     print("[DEBUG] Sample Selected Row:", filtered_rows[0])
 
 
 
@@ -402,15 +398,10 @@ class Database:
         elif aggregation_operator == 'MAX':
             return max(group_values)
 
-    def compare_values(self, value1, value2, operator, row=None, col_names=None, value2_type=None):
+    def compare_values(self, value1, value2, operator):
         """Compare two values using the specified operator.
         """
-        # If value2 is a column reference
-        if value2_type == 'COLUMN':
-            if row is None or col_names is None:
-                raise ValueError("Missing row or col_names for COLUMN comparison")
-            value2 = row[col_names.index(value2)]
-
+   
         if operator == '>':
             return value1 > value2
         elif operator == '>=':

@@ -38,8 +38,8 @@ class SelectHandler:
         part2:FROM table_name WHERE condition;
         """
         from_token = None
-        for token in parsed.tokens: #token line
-            print(token)
+        # for token in parsed.tokens: #token line
+        #     print(token)
         for token in parsed.tokens:
             if token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'FROM':
                 from_token = token
@@ -218,7 +218,8 @@ class SelectHandler:
             else:
                 expanded_selected_columns.append(col)
 
-
+        # print(f"Expanded Selected Columns: {expanded_selected_columns}")
+        # print(f"Table Alias Map: {table_alias_map}")
         success, message = self.database.select_rows(
             table_name,
             expanded_selected_columns, 
@@ -237,7 +238,8 @@ class SelectHandler:
             having_condition_types,
             having_aggregation_operator,
             having_logical_operator,
-            condition_value_types 
+            condition_value_types,
+            table_alias_map 
         )
         if success:
             for i in range(len(selected_columns)):
