@@ -160,6 +160,7 @@ class SelectHandler:
                     condition_values.append(condition_value)
                     condition_types.append(condition_type)
                     condition_value_types.append(value2_type)
+
             elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'HAVING':
                 
                 having_idx = parsed.token_index(token)

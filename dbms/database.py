@@ -209,67 +209,21 @@ class Database:
             full_col_names = col_names[:]
         else:
             return False, "Only support up to 2-table SELECT."
-        # print("[DEBUG] Full Col Names:", full_col_names)
+        print("[DEBUG] Full Col Names:", full_col_names)
+        print("[DEBUG] Condition Columns:", condition_columns)
         filtered_rows = []
 
         #if len(condition_columns) == 0:
         if not condition_columns:
             filtered_rows = rows
         else:
-            #for i, col in enumerate(condition_columns):
-            #    col_idx = col_names.index(col)
-            #    if self.columns[table_name_selected][col_idx][1] == 'INT':
-            #        condition_values[i] = int(condition_values[i])
-            
             for i, col in enumerate(condition_columns):
-                if '.' in condition_values[i]:
-                    comp_col = condition_values[i]
-        
-                    if '.' not in col: 
-                        for t in table_name:
-                            if col in [c[0] for c in self.columns[t]]:
-                                col = f"{t}.{col}"
-                                break
-                    if '.' not in comp_col: 
-                        for t in table_name:
-                            if comp_col in [c[0] for c in self.columns[t]]:
-                                comp_col = f"{t}.{comp_col}"
-                                break
-
-                    #condition_columns[i] = full_col_name
-                    condition_columns[i] = col
-                    condition_values[i] = comp_col
-                else:
-                    if '.' not in col:
-                        for t in table_name:
-                            if col in [c[0] for c in self.columns[t]]:
-                                col = f"{t}.{col}"
-                                break
-
-                    condition_columns[i] = col
-
-                    col_type = None
-                    for t in table_name:
-                        for c_name, c_type in self.columns[t]:
-                            #if c_name == col_name:
-                            if c_name == col.split('.')[-1]:
-                                col_type = c_type
-                                break
-                        if col_type:
-                            break
-
-                    if col_type == 'INT' and not isinstance(condition_values[i], int):
-                        try:
-                            condition_values[i] = int(condition_values[i])
-                        except ValueError:
-                            #pass
-                            return False, f"Type casting failed for column '{col}'"
-
-            # print("[DEBUG] Full Col Names:", full_col_names)
-            # print("[DEBUG] Condition Cols:", condition_columns)
-            # print("[DEBUG] Condition Values:", condition_values)
-            # print("[DEBUG] Condition Types:", condition_types)
-            # print("[DEBUG] Condition Value Types:", condition_value_types)
+                if not condition_value_types[i] == 'COLUMN':
+                    col_idx = col_names.index(col)
+                    if self.columns[table_name[0]][col_idx][1] == 'INT':
+                        condition_values[i] = int(condition_values[i])
+                        
+            print(condition_columns)
           
             for row in rows:
                 # print("[DEBUG] Row being checked:", row)
@@ -285,7 +239,6 @@ class Database:
                 # print("[DEBUG] Row matched conditions?", results)
                 # print("[DEBUG] logical_operator:", logical_operator)
                 # print("[DEBUG] condition results:", results)
-
 
                 if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
                     filtered_rows.append(row)
