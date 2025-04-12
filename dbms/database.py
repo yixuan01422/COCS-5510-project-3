@@ -216,15 +216,7 @@ class Database:
         #if len(condition_columns) == 0:
         if not condition_columns:
             filtered_rows = rows
-        else:
-            for i, col in enumerate(condition_columns):
-                if not condition_value_types[i] == 'COLUMN':
-                    col_idx = col_names.index(col)
-                    if self.columns[table_name[0]][col_idx][1] == 'INT':
-                        condition_values[i] = int(condition_values[i])
-                        
-            print(condition_columns)
-          
+        else:          
             for row in rows:
                 # print("[DEBUG] Row being checked:", row)
                 results = [

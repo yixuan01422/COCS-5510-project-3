@@ -51,7 +51,7 @@ def main():
    
     # # db.execute("SELECT * FROM users ORDER BY age ASC;")
     #db.execute("SELECT * FROM users ORDER BY name DESC;")
-    db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id;")
+    #db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id;")
     #db.execute("SELECT age, SUM(age) FROM users GROUP BY age;")
     #db.execute("SELECT age, AVG(id), COUNT(*) FROM users GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
     # #db.execute("UPDATE users SET age=31 WHERE id=3;")
@@ -62,7 +62,7 @@ def main():
     # #db.execute("UPDATE users SET id=9 WHERE name='Man';")
     #db.execute("SELECT * FROM departments;")
     #db.execute("SELECT * FROM users;")
-    #db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3;")
+    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3;")
     #db.execute("SELECT users.id, users.name, users.department_id, departments.department_name FROM users, departments WHERE departments.department_id = users.department_id;")
 
 if __name__ == "__main__":

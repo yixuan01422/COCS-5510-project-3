@@ -157,6 +157,8 @@ class SelectHandler:
                     else:
                         value2_type = None
                     condition_columns.append(condition_column)
+                    if condition_value and condition_value.isdigit():
+                        condition_value = int(condition_value)
                     condition_values.append(condition_value)
                     condition_types.append(condition_type)
                     condition_value_types.append(value2_type)
