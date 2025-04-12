@@ -63,16 +63,19 @@ class SelectHandler:
                         column_name = identifier.value[identifier.value.index('(') + 1:identifier.value.index(')')]
                         aggregation_operators.append(agg_op)
                         aggregation_columns.append(column_name)
+                        selected_columns.append(f"{agg_op}({column_name})")
                     else:
                         column_name = parts[0].strip()
-                    selected_columns.append(column_name)
+                        selected_columns.append(column_name)
                     
                     if len(parts) == 2: #handle rename 
                         _, alias = parts[0].strip(), parts[1].strip()
                         column_aliases[column_name] = alias
                     else:
                         if agg_op:
-                            column_aliases[column_name] = identifier.value
+                            #column_aliases[column_name] = identifier.value
+                            column_aliases[f"{agg_op}({column_name})"] = identifier.value
+
                         
             elif isinstance(token, sqlparse.sql.Identifier) or (hasattr(token, 'value') and '(' in token.value and ')' in token.value):
                 #handle select one column
@@ -84,6 +87,7 @@ class SelectHandler:
                     column_name = token.value[token.value.index('(') + 1:token.value.index(')')]
                     aggregation_operators.append(agg_op)
                     aggregation_columns.append(column_name)
+                    #selected_columns.append(f"{agg_op}({column_name})")
                 else:
                     column_name = parts[0].strip()
                 selected_columns.append(column_name)

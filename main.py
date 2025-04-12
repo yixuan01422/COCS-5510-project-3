@@ -34,7 +34,7 @@ def main():
     db.execute("INSERT INTO users VALUES (6, 'James', 27, 2);")
     db.execute("INSERT INTO users VALUES (7, 'Man', 27, 1);")
 
-    #db.execute("DELETE FROM departments WHERE department_id = 3;")
+    db.execute("DELETE FROM departments WHERE department_id = 3;")
     #db.execute("SELECT * FROM users WHERE id > 5 or id<2;")
     # # db.execute("SELECT id FROM users WHERE id<2 or age>=25;")
     # # db.execute("DELETE FROM users WHERE age=31;")
@@ -62,7 +62,7 @@ def main():
     # #db.execute("UPDATE users SET id=9 WHERE name='Man';")
     #db.execute("SELECT * FROM departments;")
     #db.execute("SELECT * FROM users;")
-    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3;")
+    #db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3;")
     #db.execute("SELECT users.id, users.name, users.department_id, departments.department_name FROM users, departments WHERE departments.department_id = users.department_id;")
 
 if __name__ == "__main__":
