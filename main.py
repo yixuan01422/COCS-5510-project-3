@@ -9,34 +9,37 @@ ORDER BY ...
 '''
 def main():
     db = SimpleDBMS()
-
+    db.execute("CREATE TABLE table1 ( id INT PRIMARY KEY, col INT);")
+    db.load(1000000, "table1")
+    db.execute("SELECT * FROM table1 WHERE id > 999990;")
     #db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE );")
     #db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL );")
-    db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE);")
-    db.execute("CREATE TABLE departments ( department_id INT PRIMARY KEY, department_name STRING, location STRING );")
-    #db.execute("CREATE TABLE agents ( id STRING PRIMARY KEY, name STRING, age INT );")
-    # db.execute("CREATE TABLE agents ( id STRING, name STRING PRIMARY KEY, age INT );")
-    # db.execute("DROP TABLE users;")
-    # db.execute("DROP TABLE users;")
+    # db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE);")
+    # db.execute("CREATE TABLE departments ( department_id INT PRIMARY KEY, department_name STRING, location STRING );")
+    # #db.execute("CREATE TABLE agents ( id STRING PRIMARY KEY, name STRING, age INT );")
+    # # db.execute("CREATE TABLE agents ( id STRING, name STRING PRIMARY KEY, age INT );")
+    # # db.execute("DROP TABLE users;")
+    # # db.execute("DROP TABLE users;")
 
-    db.execute("INSERT INTO departments VALUES  ( 1, 'CS', 'Hall');")
-    db.execute("INSERT INTO departments VALUES  ( 2, 'Math', 'College');")
-    db.execute("INSERT INTO departments VALUES  ( 3, 'Bio', 'Barn');")
-    db.execute("INSERT INTO departments VALUES  ( 4, 'History', 'Southwest');")
+    # db.execute("INSERT INTO departments VALUES  ( 1, 'CS', 'Hall');")
+    # db.execute("INSERT INTO departments VALUES  ( 2, 'Math', 'College');")
+    # db.execute("INSERT INTO departments VALUES  ( 3, 'Bio', 'Barn');")
+    # db.execute("INSERT INTO departments VALUES  ( 4, 'History', 'Southwest');")
     
 
-    db.execute("INSERT INTO users VALUES  ( 2, 'Alice', 25, 4);")
-    db.execute("INSERT INTO users VALUES  ( 2, 'Tom', 19, 4);") # for duplicate primary key testing /Expected: ERROR
-    db.execute("INSERT INTO users VALUES (1, 'Bob', 25, 1);")
-    db.execute("INSERT INTO users VALUES (4, 'Dog', 19, 2);")
-    db.execute("INSERT INTO users VALUES (3, 'Cat', 19, 3);")
-    db.execute("INSERT INTO users VALUES (5, 'Kobe', 31, 3);")
-    db.execute("INSERT INTO users VALUES (6, 'James', 27, 2);")
-    db.execute("INSERT INTO users VALUES (7, 'Man', 27, 1);")
+    # db.execute("INSERT INTO users VALUES  ( 2, 'Alice', 25, 4);")
+    # db.execute("INSERT INTO users VALUES  ( 2, 'Tom', 19, 4);") # for duplicate primary key testing /Expected: ERROR
+    # db.execute("INSERT INTO users VALUES (1, 'Bob', 25, 1);")
+    # db.execute("INSERT INTO users VALUES (4, 'Dog', 19, 2);")
+    # db.execute("INSERT INTO users VALUES (3, 'Cat', 19, 3);")
+    # db.execute("INSERT INTO users VALUES (5, 'Kobe', 31, 3);")
+    # db.execute("INSERT INTO users VALUES (6, 'James', 27, 2);")
+    # db.execute("INSERT INTO users VALUES (7, 'Man', 27, 1);")
+    
 
-    db.execute("DELETE FROM departments WHERE department_id = 3;")
+    # db.execute("DELETE FROM departments WHERE department_id = 3;")
     #db.execute("SELECT * FROM users WHERE id > 5 or id<2;")
-    # # db.execute("SELECT id FROM users WHERE id<2 or age>=25;")
+    #db.execute("SELECT id FROM users WHERE id<2 or age>=25;")
     # # db.execute("DELETE FROM users WHERE age=31;")
     # # db.execute("SELECT name, id AS N FROM users WHERE age < 30;")
     
@@ -46,7 +49,7 @@ def main():
     # #db.execute("SELECT COUNT(*), SUM(id) FROM users WHERE age > 25;")
     # # db.execute("SELECT SUM(id) AS sum_id FROM users")
     
-    # # db.execute("SELECT AVG(age) AS avg_age FROM users")
+    #db.execute("SELECT AVG(age) AS avg_age FROM users")
     #db.execute("SELECT * FROM users WHERE id > 2 AND age <= 27 ORDER BY age")
    
     # # db.execute("SELECT * FROM users ORDER BY age ASC;")
