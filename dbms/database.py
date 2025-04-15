@@ -5,6 +5,7 @@ class Database:
         self.columns = {}  
         self.primary_keys = {}
         self.foreign_keys = {}   #added 
+        self.indexes = {}  # Store indexes: {table_name: {column_name: {value: [row_indices]}}}
 
     def create_table(self, table_name, columns, primary_key=None, foreign_keys=None): 
         """Create a new table."""
@@ -193,48 +194,72 @@ class Database:
         having_condition_columns=None, having_condition_values=None, having_condition_types=None, having_aggregation_operator=None, having_logical_operator=None, condition_value_types=None, table_alias_map=None
     ):
         """Select rows from a table based on columns and optional condition(s)."""
-        #if table_name not in self.tables:
         if not all(tbl in self.tables for tbl in table_name):
             return False, f"Table '{table_name}' does not exist."
 
+        filtered_rows = []
+        
         if len(table_name) == 1:
             t1 = table_name[0]
-            rows = self.tables[t1]
             col_names = [col[0] for col in self.columns[t1]]
             full_col_names = col_names[:]
+            
+            # Check if we can use an index for the condition (single table, single equality condition)
+            if (condition_columns and len(condition_columns) == 1 and 
+                condition_types[0] == '=' and 
+                condition_value_types and condition_value_types[0] is None and  # Not a column comparison
+                t1 in self.indexes and 
+                condition_columns[0] in self.indexes[t1] and 
+                condition_values[0] in self.indexes[t1][condition_columns[0]]):
+                
+                print(f"Using index on {t1}.{condition_columns[0]} for lookup")
+                # Use index for direct lookup
+                index = self.indexes[t1][condition_columns[0]]
+                row_indices = index[condition_values[0]]
+                filtered_rows = [self.tables[t1][idx] for idx in row_indices]
+            else:
+                # Fallback to normal processing
+                rows = self.tables[t1]
+                if not condition_columns:
+                    filtered_rows = rows
+                else:
+                    for row in rows:
+                        results = [
+                            self.compare_values(
+                                row[full_col_names.index(condition_columns[i])],
+                                row[full_col_names.index(condition_values[i])] if (condition_value_types and condition_value_types[i] == 'COLUMN') else condition_values[i],
+                                operator=condition_types[i]
+                            )
+                            for i, col in enumerate(condition_columns)
+                        ]
+                        
+                        if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
+                            filtered_rows.append(row)
+                    
         elif len(table_name) == 2:
             t1, t2 = table_name
             rows = [r1 + r2 for r1 in self.tables[t1] for r2 in self.tables[t2]]
             col_names = [f"{t1}.{col[0]}" for col in self.columns[t1]] + [f"{t2}.{col[0]}" for col in self.columns[t2]]
             full_col_names = col_names[:]
+            
+            if not condition_columns:
+                filtered_rows = rows
+            else:          
+                for row in rows:
+                    results = [
+                        self.compare_values(
+                            row[full_col_names.index(condition_columns[i])],
+                            row[full_col_names.index(condition_values[i])] if (condition_value_types and condition_value_types[i] == 'COLUMN') else condition_values[i],
+                            operator=condition_types[i]
+                        )
+                        for i, col in enumerate(condition_columns)
+                    ]
+
+                    if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
+                        filtered_rows.append(row)
         else:
             return False, "Only support up to 2-table SELECT."
-        # print("[DEBUG] Full Col Names:", full_col_names)
-        # print("[DEBUG] Condition Columns:", condition_columns)
-        filtered_rows = []
 
-        #if len(condition_columns) == 0:
-        if not condition_columns:
-            filtered_rows = rows
-        else:          
-            for row in rows:
-                # print("[DEBUG] Row being checked:", row)
-                results = [
-                    # Resolve value2 if it's a column reference, then compare
-                    self.compare_values(
-                        row[full_col_names.index(condition_columns[i])],
-                        row[full_col_names.index(condition_values[i])] if (condition_value_types and condition_value_types[i] == 'COLUMN') else condition_values[i],
-                        operator=condition_types[i]
-                    )
-                    for i, col in enumerate(condition_columns)
-                ]
-                # print("[DEBUG] Row matched conditions?", results)
-                # print("[DEBUG] logical_operator:", logical_operator)
-                # print("[DEBUG] condition results:", results)
-
-                if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
-                    filtered_rows.append(row)
-             
         if order_column:
         
             if order_column not in col_names:
@@ -359,3 +384,29 @@ class Database:
             return value1 == value2
         else:
             raise ValueError(f"Unsupported comparison operator: {operator}")
+
+    def create_index(self, table_name, column_name):
+        """Create an index on a specific column of a table."""
+        if table_name not in self.tables:
+            return False, f"ERROR: Table '{table_name}' does not exist"
+            
+        column_names = [col[0] for col in self.columns[table_name]]
+        if column_name not in column_names:
+            return False, f"ERROR: Column '{column_name}' does not exist in table '{table_name}'"
+            
+        # Initialize the index structure if it doesn't exist
+        if table_name not in self.indexes:
+            self.indexes[table_name] = {}
+            
+        # Create the index
+        index = {}
+        col_idx = column_names.index(column_name)
+        
+        for row_idx, row in enumerate(self.tables[table_name]):
+            value = row[col_idx]
+            if value not in index:
+                index[value] = []
+            index[value].append(row_idx)
+            
+        self.indexes[table_name][column_name] = index
+        return True, f"Index created on {table_name}.{column_name}"

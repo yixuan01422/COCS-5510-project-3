@@ -88,3 +88,20 @@ class SimpleDBMS:
         
         print(f"Successfully added {num} random rows to table '{table_name}'")
         print(f"Operation took {execution_time:.2f} seconds")
+
+    def create_index(self, table_name, column_name):
+        """
+        Create an index on a column to improve query performance.
+        
+        Args:
+            table_name: Name of the table
+            column_name: Name of the column to index
+        """
+        start_time = time.time()
+        success, message = self.database.create_index(table_name, column_name)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        print(message)
+        print(f"Index creation took {execution_time:.2f} seconds")
+        return success
