@@ -209,8 +209,8 @@ class Database:
             full_col_names = col_names[:]
         else:
             return False, "Only support up to 2-table SELECT."
-        print("[DEBUG] Full Col Names:", full_col_names)
-        print("[DEBUG] Condition Columns:", condition_columns)
+        # print("[DEBUG] Full Col Names:", full_col_names)
+        # print("[DEBUG] Condition Columns:", condition_columns)
         filtered_rows = []
 
         #if len(condition_columns) == 0:

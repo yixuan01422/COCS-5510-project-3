@@ -6,6 +6,9 @@ from .dml.insert import InsertHandler
 from .dml.select import SelectHandler
 from .dml.delete import DeleteHandler
 from .dml.update import UpdateHandler
+import random
+import string
+import time
 
 class SimpleDBMS:
     def __init__(self):
@@ -19,6 +22,7 @@ class SimpleDBMS:
 
     def execute(self, query):
         """Parse and execute the SQL query."""
+        start_time = time.time()
         parsed = parse_query(query)
         statement_type = parsed.get_type()
 
@@ -29,14 +33,17 @@ class SimpleDBMS:
         elif statement_type == 'INSERT':
             self.insert_handler.handle(parsed)
         elif statement_type == 'SELECT':
-            return self.select_handler.handle(parsed)
+            self.select_handler.handle(parsed)
         elif statement_type == 'DELETE':
-            return self.delete_handler.handle(parsed)
+            self.delete_handler.handle(parsed)
         elif statement_type == 'UPDATE':
-            return self.update_handler.handle(parsed)
+            self.update_handler.handle(parsed)
         else:
             raise ValueError(f"Unsupported SQL statement: {statement_type}")
-    
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Operation took {execution_time:.2f} seconds")
+
     def load(self, num, table_name):
         """
         Generate random rows for a table with incrementing IDs
@@ -45,8 +52,7 @@ class SimpleDBMS:
             num: Number of rows to generate
             table_name: Name of the table to load data into
         """
-        import random
-        import string
+        
         
         if table_name not in self.database.tables:
             return False, f"Table '{table_name}' does not exist"
@@ -57,6 +63,9 @@ class SimpleDBMS:
         
         id_col_index = 0
         id = 1
+        
+        start_time = time.time()
+        
         for i in range(num):
             row = []
             
@@ -74,4 +83,8 @@ class SimpleDBMS:
             self.database.tables[table_name].append(row)
             id += 1
         
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
         print(f"Successfully added {num} random rows to table '{table_name}'")
+        print(f"Operation took {execution_time:.2f} seconds")
