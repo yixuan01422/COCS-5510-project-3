@@ -10,8 +10,8 @@ ORDER BY ...
 def main():
     db = SimpleDBMS()
     db.execute("CREATE TABLE table1 ( id INT PRIMARY KEY, col INT);")
-    db.load(1000000, "table1")
-    db.execute("SELECT * FROM table1 WHERE id > 999990;")
+    db.load(100000000, "table1")
+    db.execute("SELECT * FROM table1 WHERE id = 9999990;")
     #db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE );")
     #db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL );")
     # db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE);")

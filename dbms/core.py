@@ -60,7 +60,8 @@ class SimpleDBMS:
         for i in range(num):
             row = []
             
-            
+            if i % (num/10) == 0:
+                print(f"Loaded {i} rows")
             for j, col_type in enumerate(types):
                 # ID column (first column)
                 if j == id_col_index:
