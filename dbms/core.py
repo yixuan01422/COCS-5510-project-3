@@ -42,7 +42,7 @@ class SimpleDBMS:
             raise ValueError(f"Unsupported SQL statement: {statement_type}")
         end_time = time.time()
         execution_time = end_time - start_time
-        print(f"Operation took {execution_time:.2f} seconds")
+        print(f"Operation took {execution_time:.4f} seconds")
 
     def load(self, num, table_name):
         """
@@ -87,7 +87,7 @@ class SimpleDBMS:
         execution_time = end_time - start_time
         
         print(f"Successfully added {num} random rows to table '{table_name}'")
-        print(f"Operation took {execution_time:.2f} seconds")
+        print(f"Operation took {execution_time:.4f} seconds")
 
     def create_index(self, table_name, column_name):
         """
@@ -103,5 +103,54 @@ class SimpleDBMS:
         execution_time = end_time - start_time
         
         print(message)
-        print(f"Index creation took {execution_time:.2f} seconds")
+        print(f"Index creation took {execution_time:.4f} seconds")
+        return success
+        
+    def drop_index(self, table_name, column_name):
+        """
+        Drop an existing index on a column.
+        
+        Args:
+            table_name: Name of the table
+            column_name: Name of the column with the index to drop
+        """
+        start_time = time.time()
+        success, message = self.database.drop_index(table_name, column_name)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        print(message)
+        print(f"Index drop took {execution_time:.4f} seconds")
+        return success
+    
+    def save_database(self, filename):
+        """
+        Save the entire database state to a file for persistence.
+        
+        Args:
+            filename: Path to the file where database will be saved
+        """
+        start_time = time.time()
+        success, message = self.database.save_database(filename)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        print(message)
+        print(f"Total save operation took {execution_time:.4f} seconds")
+        return success
+        
+    def load_database(self, filename):
+        """
+        Load the entire database state from a file.
+        
+        Args:
+            filename: Path to the file containing saved database
+        """
+        start_time = time.time()
+        success, message = self.database.load_database(filename)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        print(message)
+        print(f"Total load operation took {execution_time:.4f} seconds")
         return success

@@ -410,3 +410,123 @@ class Database:
             
         self.indexes[table_name][column_name] = index
         return True, f"Index created on {table_name}.{column_name}"
+        
+    def drop_index(self, table_name, column_name):
+        """Drop an existing index on a specific column of a table."""
+        if table_name not in self.tables:
+            return False, f"ERROR: Table '{table_name}' does not exist"
+            
+        if table_name not in self.indexes:
+            return False, f"ERROR: No indexes exist on table '{table_name}'"
+            
+        if column_name not in self.indexes[table_name]:
+            return False, f"ERROR: No index exists on column '{column_name}' in table '{table_name}'"
+            
+        # Remove the index
+        del self.indexes[table_name][column_name]
+        
+        # If no more indexes on this table, remove the table entry from indexes
+        if not self.indexes[table_name]:
+            del self.indexes[table_name]
+            
+        return True, f"Index dropped on {table_name}.{column_name}"
+    
+    def save_database(self, filename):
+        """
+        Save the entire database state to a file for persistence.
+        
+        Args:
+            filename: Path to the file where database will be saved
+        """
+        import json
+        import time
+        
+        start_time = time.time()
+        
+        # Create a serializable database state
+        db_state = {
+            "tables": self.tables,
+            "columns": self.columns,
+            "primary_keys": self.primary_keys,
+            "foreign_keys": self.foreign_keys
+        }
+        
+        # Handle indexes specially (convert non-string keys to strings)
+        serialized_indexes = {}
+        for table_name, table_indexes in self.indexes.items():
+            serialized_indexes[table_name] = {}
+            for column_name, column_index in table_indexes.items():
+                serialized_indexes[table_name][column_name] = {}
+                for value, row_indices in column_index.items():
+                    # Convert value to string for JSON serialization
+                    serialized_indexes[table_name][column_name][str(value)] = row_indices
+        
+        db_state["indexes"] = serialized_indexes
+        
+        try:
+            with open(filename, 'w') as f:
+                json.dump(db_state, f)
+            end_time = time.time()
+            save_time = end_time - start_time
+            return True, f"Database saved to {filename} ({save_time:.4f} seconds)"
+        except Exception as e:
+            return False, f"ERROR: Failed to save database: {str(e)}"
+    
+    def load_database(self, filename):
+        """
+        Load the entire database state from a file.
+        
+        Args:
+            filename: Path to the file containing saved database
+        """
+        import json
+        import time
+        import os
+        
+        if not os.path.exists(filename):
+            return False, f"ERROR: Database file {filename} does not exist"
+        
+        start_time = time.time()
+        try:
+            with open(filename, 'r') as f:
+                db_state = json.load(f)
+            
+            # Restore basic database structures
+            self.tables = db_state["tables"]
+            self.columns = db_state["columns"]
+            self.primary_keys = db_state["primary_keys"]
+            self.foreign_keys = db_state["foreign_keys"]
+            
+            # Restore indexes with proper type conversion
+            self.indexes = {}
+            serialized_indexes = db_state["indexes"]
+            
+            for table_name, table_indexes in serialized_indexes.items():
+                self.indexes[table_name] = {}
+                for column_name, column_index in table_indexes.items():
+                    self.indexes[table_name][column_name] = {}
+                    
+                    # Get column type to properly convert values
+                    column_names = [col[0] for col in self.columns[table_name]]
+                    if column_name in column_names:
+                        col_idx = column_names.index(column_name)
+                        col_type = self.columns[table_name][col_idx][1]
+                        
+                        for value_str, row_indices in column_index.items():
+                            # Convert value back to original type
+                            if col_type == 'INT':
+                                try:
+                                    value = int(value_str)
+                                except ValueError:
+                                    value = value_str  # Keep as string if can't convert
+                            else:
+                                value = value_str
+                                
+                            self.indexes[table_name][column_name][value] = row_indices
+            
+            end_time = time.time()
+            load_time = end_time - start_time
+            
+            return True, f"Database loaded from {filename} ({load_time:.4f} seconds)"
+        except Exception as e:
+            return False, f"ERROR: Failed to load database: {str(e)}"

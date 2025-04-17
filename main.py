@@ -10,27 +10,47 @@ ORDER BY ...
 def main():
     db = SimpleDBMS()
     
-    # Create basic tables for testing
+    # Create and populate database
+    print("Creating and populating database...")
     db.execute("CREATE TABLE table1 ( id INT PRIMARY KEY, col INT);")
     
-    db.load(1000000, "table1")  # Load 1 million rows
+    # Load fewer rows for faster testing
+    db.load(10000, "table1")  # Load 10K rows instead of 1M
     
-    print("\nQuerying WITHOUT index:")
-    db.execute("SELECT * FROM table1 WHERE id = 500000;")
-    
+    # Create an index
     print("\nCreating index on id column...")
     db.create_index("table1", "id")
     
-    print("\nQuerying WITH index:")
-    db.execute("SELECT * FROM table1 WHERE id = 500000;")
+    # Run a query to show it works
+    print("\nRunning a query using the index:")
+    db.execute("SELECT * FROM table1 WHERE id = 5000;")
     
-    # # Also create an index on a non-primary key column
-    # print("\nCreating index on non-primary key column (col)...")
-    # db.create_index("table1", "col")
+    # Save the database state
+    print("\nSaving database state...")
+    db.save_database("database_backup.json")
     
-    # # Query using the non-primary key index
-    # print("\nQuerying using non-primary key index:")
-    # db.execute("SELECT * FROM table1 WHERE col = 500;")
+    # Create a new database instance
+    print("\nCreating new database instance...")
+    new_db = SimpleDBMS()
+    
+    # Verify the new instance is empty
+    try:
+        print("\nAttempting to query before loading (should fail):")
+        new_db.execute("SELECT * FROM table1 WHERE id = 5000;")
+    except Exception as e:
+        print(f"Expected error: {str(e)}")
+    
+    # Load the database state
+    print("\nLoading database state...")
+    new_db.load_database("database_backup.json")
+    
+    # Verify the data was loaded by running the same query again
+    print("\nRunning the same query after loading:")
+    new_db.execute("SELECT * FROM table1 WHERE id = 5000;")
+    
+    # Show that indexes were loaded too
+    print("\nVerify indexes were loaded (query should use index):")
+    new_db.execute("SELECT * FROM table1 WHERE id = 7500;")
 
 if __name__ == "__main__":
     main()
