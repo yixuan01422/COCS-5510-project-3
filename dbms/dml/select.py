@@ -123,8 +123,14 @@ class SelectHandler:
             elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'ORDER BY':
                 order_column_token = parsed.token_next(parsed.token_index(token))[1]
                 if order_column_token:
-                    order_column = order_column_token.get_real_name()
                     order_column_parts = order_column_token.value.split()
+                    order_column = order_column_parts[0]
+                    # Handle table aliases in ORDER BY
+                    if '.' in order_column:
+                        alias, col = order_column.split('.')
+                        order_column = f"{table_alias_map.get(alias, alias)}.{col}"
+                        print(order_column)
+                    
                     if len(order_column_parts) > 1:
                         if order_column_parts[1].upper() == 'DESC':
                             ascending = False

@@ -60,14 +60,14 @@ def main():
     db.execute("INSERT INTO users VALUES (40, 'Samantha', 30, 6);")
     print("query:")
     # db.execute("SELECT * FROM users WHERE id > 5 or id<2;")
-    # db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id;")
+    # db.execute("SELECT name AS NAME, id FROM users WHERE age > 30 or age < 20 ORDER BY id DESC;")
     # db.execute("SELECT COUNT(*), SUM(id) FROM users WHERE age > 25;")
     # db.execute("SELECT age, SUM(age) FROM users GROUP BY age;")
     # db.execute("SELECT age, AVG(id), COUNT(*) FROM users GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
     
     # Demonstrate join with Cartesian product (default)
     print("\nJoin using Cartesian product (default):")
-    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3;")
+    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3 ORDER BY u.id;")
     
     # Switch to sort-merge join
     print("\nSwitching to sort-merge join method:")
@@ -75,11 +75,11 @@ def main():
     
     # Demonstrate join with sort-merge
     print("\nJoin using sort-merge algorithm:")
-    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3;")
+    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3 ORDER BY u.id;")
     
-    # # Switch back to Cartesian product
-    # print("\nSwitching back to Cartesian product join method:")
-    # db.set_join_method(False)
+    # Switch back to Cartesian product
+    print("\nSwitching back to Cartesian product join method:")
+    db.set_join_method(False)
     
     # print("example 2:")
     # db = SimpleDBMS()
