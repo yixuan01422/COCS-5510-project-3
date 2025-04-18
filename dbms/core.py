@@ -154,3 +154,15 @@ class SimpleDBMS:
         print(message)
         print(f"Total load operation took {execution_time:.4f} seconds")
         return success
+
+    def set_join_method(self, use_sort_merge=False):
+        """
+        Set the join method for table joins.
+        
+        Args:
+            use_sort_merge: True to use sort-merge join, False to use Cartesian product join
+        """
+        self.database.use_sort_merge = use_sort_merge
+        method = "sort-merge" if use_sort_merge else "Cartesian product"
+        print(f"Join method set to: {method}")
+        return True

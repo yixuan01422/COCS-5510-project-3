@@ -6,7 +6,8 @@ class Database:
         self.primary_keys = {}
         self.foreign_keys = {}   #added 
         self.indexes = {}  # Store indexes: {table_name: {column_name: {value: [row_indices]}}}
-
+        self.use_sort_merge = False  # Flag to control join method
+        
     def create_table(self, table_name, columns, primary_key=None, foreign_keys=None): 
         """Create a new table."""
         if table_name in self.tables:
@@ -238,25 +239,180 @@ class Database:
                     
         elif len(table_name) == 2:
             t1, t2 = table_name
-            rows = [r1 + r2 for r1 in self.tables[t1] for r2 in self.tables[t2]]
             col_names = [f"{t1}.{col[0]}" for col in self.columns[t1]] + [f"{t2}.{col[0]}" for col in self.columns[t2]]
             full_col_names = col_names[:]
             
-            if not condition_columns:
-                filtered_rows = rows
-            else:          
-                for row in rows:
-                    results = [
-                        self.compare_values(
-                            row[full_col_names.index(condition_columns[i])],
-                            row[full_col_names.index(condition_values[i])] if (condition_value_types and condition_value_types[i] == 'COLUMN') else condition_values[i],
-                            operator=condition_types[i]
-                        )
-                        for i, col in enumerate(condition_columns)
-                    ]
-
-                    if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
-                        filtered_rows.append(row)
+            if self.use_sort_merge:
+                print("Using sort-merge join algorithm")
+                
+                # Extract join conditions and filter conditions
+                join_conditions = []
+                filter_conditions = []
+                
+                if condition_columns and condition_types and condition_values and condition_value_types:
+                    for i, col in enumerate(condition_columns):
+                        if condition_value_types[i] == 'COLUMN':
+                            # This is a join condition
+                            join_conditions.append((col, condition_values[i], condition_types[i]))
+                        else:
+                            # This is a filter condition
+                            filter_conditions.append((col, condition_values[i], condition_types[i]))
+                
+                # Apply filters to individual tables first
+                t1_filters = []
+                t2_filters = []
+                for col, val, op in filter_conditions:
+                    if col.startswith(f"{t1}."):
+                        t1_filters.append((col.split('.')[1], val, op))
+                    elif col.startswith(f"{t2}."):
+                        t2_filters.append((col.split('.')[1], val, op))
+                
+                # Filter t1 rows
+                t1_rows = self.tables[t1]
+                if t1_filters:
+                    filtered_t1 = []
+                    for row in t1_rows:
+                        include = True
+                        for col, val, op in t1_filters:
+                            col_idx = [idx for idx, c in enumerate(self.columns[t1]) if c[0] == col][0]
+                            if not self.compare_values(row[col_idx], val, op):
+                                include = False
+                                break
+                        if include:
+                            filtered_t1.append(row)
+                    t1_rows = filtered_t1
+                
+                # Filter t2 rows
+                t2_rows = self.tables[t2]
+                if t2_filters:
+                    filtered_t2 = []
+                    for row in t2_rows:
+                        include = True
+                        for col, val, op in t2_filters:
+                            col_idx = [idx for idx, c in enumerate(self.columns[t2]) if c[0] == col][0]
+                            if not self.compare_values(row[col_idx], val, op):
+                                include = False
+                                break
+                        if include:
+                            filtered_t2.append(row)
+                    t2_rows = filtered_t2
+                
+                # Extract join columns
+                join_cols = []
+                for left_col, right_col, op in join_conditions:
+                    if op == '=' and left_col.startswith(f"{t1}.") and right_col.startswith(f"{t2}."):
+                        t1_col = left_col.split('.')[1]
+                        t2_col = right_col.split('.')[1]
+                        join_cols.append((t1_col, t2_col))
+                    elif op == '=' and left_col.startswith(f"{t2}.") and right_col.startswith(f"{t1}."):
+                        t2_col = left_col.split('.')[1]
+                        t1_col = right_col.split('.')[1]
+                        join_cols.append((t1_col, t2_col))
+                
+                # If we have at least one equijoin condition, we can do the sort-merge join
+                if join_cols:
+                    # Get the indices for the join columns
+                    t1_col, t2_col = join_cols[0]  # Use the first join condition
+                    t1_col_idx = [idx for idx, c in enumerate(self.columns[t1]) if c[0] == t1_col][0]
+                    t2_col_idx = [idx for idx, c in enumerate(self.columns[t2]) if c[0] == t2_col][0]
+                    
+                    # Sort both tables on the join columns
+                    sorted_t1 = sorted(t1_rows, key=lambda row: row[t1_col_idx])
+                    sorted_t2 = sorted(t2_rows, key=lambda row: row[t2_col_idx])
+                    
+                    # Perform the merge
+                    i = 0  # Index for t1
+                    j = 0  # Index for t2
+                    
+                    while i < len(sorted_t1) and j < len(sorted_t2):
+                        t1_val = sorted_t1[i][t1_col_idx]
+                        t2_val = sorted_t2[j][t2_col_idx]
+                        
+                        if t1_val < t2_val:
+                            # t1's value is smaller, advance t1 pointer
+                            i += 1
+                        elif t1_val > t2_val:
+                            # t2's value is smaller, advance t2 pointer
+                            j += 1
+                        else:
+                            # Match found - collect all rows with this join value
+                            match_val = t1_val
+                            
+                            # Find all t1 rows with this value
+                            matching_t1 = []
+                            while i < len(sorted_t1) and sorted_t1[i][t1_col_idx] == match_val:
+                                matching_t1.append(sorted_t1[i])
+                                i += 1
+                            
+                            # Find all t2 rows with this value
+                            matching_t2 = []
+                            while j < len(sorted_t2) and sorted_t2[j][t2_col_idx] == match_val:
+                                matching_t2.append(sorted_t2[j])
+                                j += 1
+                            
+                            # Create result rows from matched rows
+                            for t1_row in matching_t1:
+                                for t2_row in matching_t2:
+                                    filtered_rows.append(t1_row + t2_row)
+                    
+                    # Verify all other join conditions if any
+                    if len(join_cols) > 1:
+                        verified_rows = []
+                        for row in filtered_rows:
+                            valid = True
+                            for t1_join_col, t2_join_col in join_cols[1:]:  # Skip the first one we already used
+                                t1_idx = [idx for idx, c in enumerate(self.columns[t1]) if c[0] == t1_join_col][0]
+                                t2_idx = [idx for idx, c in enumerate(self.columns[t2]) if c[0] == t2_join_col][0]
+                                t2_offset = len(self.columns[t1])  # Offset to find t2 columns in combined row
+                                
+                                if row[t1_idx] != row[t2_offset + t2_idx]:
+                                    valid = False
+                                    break
+                            
+                            if valid:
+                                verified_rows.append(row)
+                        
+                        filtered_rows = verified_rows
+                else:
+                    # No equijoin condition, fallback to Cartesian product
+                    print("No equijoin condition found, falling back to Cartesian product")
+                    rows = [r1 + r2 for r1 in t1_rows for r2 in t2_rows]
+                    
+                    if condition_columns:
+                        for row in rows:
+                            results = [
+                                self.compare_values(
+                                    row[full_col_names.index(condition_columns[i])],
+                                    row[full_col_names.index(condition_values[i])] if condition_value_types[i] == 'COLUMN' else condition_values[i],
+                                    operator=condition_types[i]
+                                )
+                                for i in range(len(condition_columns))
+                            ]
+                            
+                            if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
+                                filtered_rows.append(row)
+                    else:
+                        filtered_rows = rows
+            else:
+                # Current implementation - Cartesian product
+                print("Using Cartesian product join algorithm")
+                rows = [r1 + r2 for r1 in self.tables[t1] for r2 in self.tables[t2]]
+                
+                if not condition_columns:
+                    filtered_rows = rows
+                else:          
+                    for row in rows:
+                        results = [
+                            self.compare_values(
+                                row[full_col_names.index(condition_columns[i])],
+                                row[full_col_names.index(condition_values[i])] if (condition_value_types and condition_value_types[i] == 'COLUMN') else condition_values[i],
+                                operator=condition_types[i]
+                            )
+                            for i, col in enumerate(condition_columns)
+                        ]
+    
+                        if (len(results) == 1 and results[0]) or (logical_operator == 'AND' and all(results)) or (logical_operator == 'OR' and any(results)):
+                            filtered_rows.append(row)
         else:
             return False, "Only support up to 2-table SELECT."
 
