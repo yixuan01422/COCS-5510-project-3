@@ -10,9 +10,6 @@ class CreateTableHandler:
         columns = []  # Stores column definitions
         primary_key = None  # Stores the primary key column name
         foreign_keys = []  # Stores foreign key definitions
-        reference_table = None  # Stores reference definitions
-        reference_column = None  # Stores reference column name
-        on_delete_action = None  # Stores ON DELETE action
 
         # Iterate through the parsed SQL tokens
         for token in parsed.tokens:
@@ -68,10 +65,8 @@ class CreateTableHandler:
             raise ValueError("Table name not found in CREATE TABLE statement")
 
         # Create the table with primary key support
-        result = self.database.create_table(table_name, columns, primary_key, foreign_keys)
-        #result, msg = self.database.create_table(table_name, columns, primary_key, foreign_keys)
+        result, msg = self.database.create_table(table_name, columns, primary_key, foreign_keys)
         if result:
-            print(f"Table '{table_name}' created with columns: {columns}, PRIMARY KEY: {primary_key}")
+            print(f"Table '{table_name}' created with columns: {columns}, PRIMARY KEY: {primary_key}, foreign keys: {foreign_keys}")
         else:
-            #print(f"ERROR: Table '{table_name}' already exists")
             print(msg)

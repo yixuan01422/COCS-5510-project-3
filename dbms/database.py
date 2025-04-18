@@ -22,10 +22,30 @@ class Database:
     def drop_table(self, table_name):
         """Drop an existing table."""
         if table_name in self.tables:
+            # Check if any other table references this table via foreign keys
+            referencing_tables = []
+            for other_table, fks in self.foreign_keys.items():
+                if other_table != table_name:  # Skip self-references
+                    for fk in fks:
+                        if fk['ref_table'] == table_name:
+                            referencing_tables.append(other_table)
+                            break  # One reference is enough to block the operation
+            
+            if referencing_tables:
+                return False, f"ERROR: Cannot drop table '{table_name}' because it is referenced by the following table(s): {', '.join(referencing_tables)}"
+            
+            # No references found, proceed with dropping the table
             del self.tables[table_name]
             del self.columns[table_name]
             if table_name in self.primary_keys:
-                del self.primary_keys[table_name]  
+                del self.primary_keys[table_name]
+            if table_name in self.foreign_keys:
+                del self.foreign_keys[table_name]
+            if table_name in self.indexes:
+                del self.indexes[table_name]
+            if hasattr(self, '_column_name_cache') and table_name in self._column_name_cache:
+                del self._column_name_cache[table_name]
+                
             return True, f"Table '{table_name}' dropped successfully."
         return False, f"ERROR: Table '{table_name}' does not exist."
 
