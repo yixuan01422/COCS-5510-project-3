@@ -217,7 +217,7 @@ class Database:
         """Select rows from a table based on columns and optional condition(s)."""
         if not all(tbl in self.tables for tbl in table_name):
             return False, f"Table '{table_name}' does not exist."
-
+        print(group_by_column, having_condition_columns) 
         filtered_rows = []
         
         if len(table_name) == 1:

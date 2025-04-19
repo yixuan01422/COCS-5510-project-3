@@ -129,7 +129,6 @@ class SelectHandler:
                     if '.' in order_column:
                         alias, col = order_column.split('.')
                         order_column = f"{table_alias_map.get(alias, alias)}.{col}"
-                        print(order_column)
                     
                     if len(order_column_parts) > 1:
                         if order_column_parts[1].upper() == 'DESC':
@@ -139,7 +138,13 @@ class SelectHandler:
             elif token.ttype is sqlparse.tokens.Keyword and token.value.upper() == 'GROUP BY':
                 group_by_column_token = parsed.token_next(parsed.token_index(token))[1]
                 if group_by_column_token:
-                    group_by_column = group_by_column_token.get_real_name()
+                    group_by_column = group_by_column_token.value
+                    # Handle table aliases in GROUP BY - same approach as ORDER BY
+                    print(group_by_column)
+                    if '.' in group_by_column:
+                        alias, col = group_by_column.split('.')
+                        group_by_column = f"{table_alias_map.get(alias, alias)}.{col}"
+                        print(group_by_column)
             elif token.value.startswith('WHERE'):
                 print(token)
                 condition = token.value.replace("WHERE", "").replace(";", "").strip()
@@ -183,6 +188,12 @@ class SelectHandler:
                     agg_part = agg_str[:agg_str.index(')')+ 1]  
                     having_aggregation_operator.append(agg_part[:agg_part.index('(')].upper())
                     column = agg_part[agg_part.index('(')+1:agg_part.index(')')]
+                    
+                    # Handle table aliases in HAVING column references
+                    if '.' in column:
+                        alias, col = column.split('.')
+                        column = f"{table_alias_map.get(alias, alias)}.{col}"
+                        
                     having_condition_columns.append(column)
                     
                     remaining = agg_str[agg_str.index(')')+1:].strip()
@@ -201,6 +212,12 @@ class SelectHandler:
                         agg_part = agg_str[:agg_str.index(')')+ 1]  
                         having_aggregation_operator.append(agg_part[:agg_part.index('(')].upper())
                         column = agg_part[agg_part.index('(')+1:agg_part.index(')')]
+                        
+                        # Handle table aliases in HAVING column references for second condition
+                        if '.' in column:
+                            alias, col = column.split('.')
+                            column = f"{table_alias_map.get(alias, alias)}.{col}"
+                            
                         having_condition_columns.append(column)
                         
                         remaining = agg_str[agg_str.index(')')+1:].strip()
