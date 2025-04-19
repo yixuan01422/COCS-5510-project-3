@@ -2,11 +2,11 @@ from dbms.core import SimpleDBMS
 
 def main():
     db = SimpleDBMS()
-    print("example 1:")
-    print("create table:")
+    #print("example 1:")
+    #print("create table:")
     db.execute("CREATE TABLE departments ( department_id INT PRIMARY KEY, department_name STRING, location STRING );")
     db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE);")
-    db.execute("DROP TABLE departments;")
+    #db.execute("DROP TABLE departments;")
     # print("insert data:")
     # db.execute("INSERT INTO departments VALUES  ( 1, 'CS', 'Hall');")
     # db.execute("INSERT INTO departments VALUES  ( 2, 'Math', 'College');")
@@ -67,20 +67,20 @@ def main():
     # db.execute("SELECT age, AVG(id), COUNT(*) FROM users GROUP BY age HAVING COUNT(*) > 1 AND AVG(age) >= 25;")
     
     # Demonstrate join with Cartesian product (default)
-    print("\nJoin using Cartesian product (default):")
-    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3 ORDER BY u.id;")
+    #print("\nJoin using Cartesian product (default):")
+    #db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3 ORDER BY u.id;")
     
     # Switch to sort-merge join
-    print("\nSwitching to sort-merge join method:")
-    db.set_join_method(True)
+    #print("\nSwitching to sort-merge join method:")
+    #db.set_join_method(True)
     
     # Demonstrate join with sort-merge
-    print("\nJoin using sort-merge algorithm:")
-    db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3 ORDER BY u.id;")
+    #print("\nJoin using sort-merge algorithm:")
+    #db.execute("SELECT u.id, u.name, u.department_id, d.department_name FROM users u, departments d WHERE u.department_id = d.department_id AND u.id > 3 ORDER BY u.id;")
     
     # Switch back to Cartesian product
-    print("\nSwitching back to Cartesian product join method:")
-    db.set_join_method(False)
+    #print("\nSwitching back to Cartesian product join method:")
+    #db.set_join_method(False)
     
     # print("example 2:")
     # db = SimpleDBMS()
@@ -114,6 +114,29 @@ def main():
     
     # print("\nVerify indexes were loaded (query should use index):")
     # new_db.execute("SELECT * FROM table1 WHERE id = 7500;")
+
+    db.execute("INSERT INTO departments VALUES (1, 'CS', 'Hall');")            
+    db.execute("INSERT INTO users VALUES (2, 'Alice', 25, 1);")
+    db.execute("INSERT INTO users VALUES (2, 'Tom', 19, 1);")
+    db.execute("INSERT INTO users VALUES ('str', 'Tom', 19, 1);")
+    db.execute("INSERT INTO users VALUES (4, 'Jack', 20, 999);")
+
+    db.execute("SELECT * FROM users")
+    #db.execute("UPDATE users SET name='Updated' WHERE id=2;")
+    #db.execute("UPDATE users SET department_id=3 WHERE department_id=1;")
+    #db.execute("UPDATE users SET id=1 WHERE id=4;")
+    #db.execute("UPDATE users SET age='wrong_type' WHERE id=2;")
+    #db.execute("UPDATE users SET name='Merged', age=30 WHERE id=2 OR id=3;")
+
+    db.execute("DELETE FROM users WHERE id=2;")                            
+    db.execute("DELETE FROM departments WHERE department_id=1;")                   
+    db.execute("DELETE FROM departments WHERE department_id=999;")
+    db.execute("DELETE FROM users WHERE id=3 OR age < 20;")    #this               
+    db.execute("DELETE FROM departments WHERE department_id='string';")   #this        
+                              
+
+    
+
 
 if __name__ == "__main__":
     main()
