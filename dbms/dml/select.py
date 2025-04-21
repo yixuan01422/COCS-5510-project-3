@@ -290,7 +290,7 @@ class SelectHandler:
                     #columns = [col[0] for col in self.database.columns[table_name[0]]]
                     base = table_name[0].split()[0]
                     alias = table_name[0].split()[-1]
-                    columns = [f"{alias}.{col[0]}" for col in self.database.columns[base]]
+                    columns = [f"{col[0]}" for col in self.database.columns[base]]
                 else:
                     t1, t2 = table_name
                     #t1_real = t1.split()[0]

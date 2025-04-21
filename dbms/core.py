@@ -44,7 +44,7 @@ class SimpleDBMS:
         execution_time = end_time - start_time
         print(f"Operation took {execution_time:.4f} seconds")
 
-    def load(self, num, table_name):
+    def load(self, num, table_name, one=True):
         """
         Generate random rows for a table with incrementing IDs
         
@@ -75,10 +75,13 @@ class SimpleDBMS:
                 # ID column (first column)
                 if j == id_col_index:
                     row.append(id)
-                # Generate random data based on column type
+                
                 elif col_type == "INT":
-                    row.append(random.randint(1, 1000))
-                else:  # Default to string for any other type
+                    if one:
+                        row.append(1)
+                    else:
+                        row.append(id)
+                else:  
                     row.append(''.join(random.choices(string.ascii_letters, k=random.randint(5, 10))))
             self.database.tables[table_name].append(row)
             id += 1
