@@ -117,5 +117,28 @@ def main():
     # print("\nVerify indexes were loaded (query should use index):")
     # new_db.execute("SELECT * FROM table1 WHERE id = 7500;")
 
+    db.execute("INSERT INTO departments VALUES (1, 'CS', 'Hall');")            
+    db.execute("INSERT INTO users VALUES (2, 'Alice', 25, 1);")
+    db.execute("INSERT INTO users VALUES (2, 'Tom', 19, 1);")
+    db.execute("INSERT INTO users VALUES ('str', 'Tom', 19, 1);")
+    db.execute("INSERT INTO users VALUES (4, 'Jack', 20, 999);")
+
+    db.execute("SELECT * FROM users")
+    #db.execute("UPDATE users SET name='Updated' WHERE id=2;")
+    #db.execute("UPDATE users SET department_id=3 WHERE department_id=1;")
+    #db.execute("UPDATE users SET id=1 WHERE id=4;")
+    #db.execute("UPDATE users SET age='wrong_type' WHERE id=2;")
+    #db.execute("UPDATE users SET name='Merged', age=30 WHERE id=2 OR id=3;")
+
+    db.execute("DELETE FROM users WHERE id=2;")                            
+    db.execute("DELETE FROM departments WHERE department_id=1;")                   
+    db.execute("DELETE FROM departments WHERE department_id=999;")
+    db.execute("DELETE FROM users WHERE id=3 OR age < 20;")    #this               
+    db.execute("DELETE FROM departments WHERE department_id='string';")   #this        
+                              
+
+    
+
+
 if __name__ == "__main__":
     main()

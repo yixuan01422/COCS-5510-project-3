@@ -108,8 +108,19 @@ class Database:
 
         for i, col in enumerate(condition_columns):
             col_idx = col_names.index(col)
-            if self.columns[table_name][col_idx][1] == 'INT':
-                condition_values[i] = int(condition_values[i])
+            #if self.columns[table_name][col_idx][1] == 'INT':
+            #    condition_values[i] = int(condition_values[i])
+
+            col_type = self.columns[table_name][col_idx][1]
+            # Only cast if the value is clearly numeric and the column expects INT
+            if col_type == 'INT':
+                if isinstance(condition_values[i], str) and condition_values[i].isdigit():
+                    condition_values[i] = int(condition_values[i])
+                elif isinstance(condition_values[i], int):
+                    continue
+                else:
+                    return False, f"Expected INT for column '{col}', got '{condition_values[i]}'"
+
 
         while i < len(self.tables[table_name]):
             row = self.tables[table_name][i]
@@ -161,7 +172,7 @@ class Database:
                                 for r in self.tables[dependent_table]:
                                     if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] == ref_value:
                                         return False, f"ERROR: Cannot delete from '{table_name}' due to FOREIGN KEY constraint in '{dependent_table}'"
-                print(f"[DEBUG] Foreign key map: {self.foreign_keys}")
+                #print(f"[DEBUG] Foreign key map: {self.foreign_keys}")
 
                 self.tables[table_name].pop(i)
                 deleted_count += 1

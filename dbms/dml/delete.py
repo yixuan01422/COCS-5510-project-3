@@ -21,16 +21,23 @@ class DeleteHandler:
                     table_name = table_name_token.value
             elif token.value.startswith('WHERE'):
                 condition = token.value.replace("WHERE", "").replace(";", "").strip()
-                lower_str = condition.lower()
-                if ' and ' in lower_str:
-                    condition_parts = condition.split(' and ')
+                #lower_str = condition.lower()
+                #if ' and ' in lower_str:
+                if ' and ' in condition.lower():
+                    #condition_parts = condition.split(' and ')
                     logical_operator = 'AND'
-                elif ' or ' in lower_str:
-                    condition_parts = condition.split(' or ')
+                    condition_parts = [part.strip() for part in condition.lower().split(' and ')]
+                #elif ' or ' in lower_str:
+                elif ' or ' in condition.lower():
+                    #condition_parts = condition.split(' or ')
                     logical_operator = 'OR'
+                    condition_parts = [part.strip() for part in condition.lower().split(' or ')]
+                    #print("Parsed condition parts:", condition_parts)
+
                 else:
                     # Only one condition
-                    condition_parts = [condition]
+                    #condition_parts = [condition]
+                    condition_parts = [condition.strip()]
                 for part in condition_parts:
                     condition_column, condition_value, condition_type = parse_single_condition(part)
                     condition_columns.append(condition_column)
