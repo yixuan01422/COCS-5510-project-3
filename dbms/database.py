@@ -184,6 +184,7 @@ class Database:
     def update_rows(self, table_name, condition_columns, condition_values, condition_types, set_columns, set_values, logical_operator=None):
 
         col_names = [col[0] for col in self.columns[table_name]]
+        col_types = {col[0]: col[1] for col in self.columns[table_name]}
         primary_key = self.primary_keys.get(table_name)
         cnt = 0
         if primary_key in set_columns:
@@ -209,6 +210,16 @@ class Database:
                     pk_index = col_names.index(primary_key)
                     pk_values = set(row[pk_index] for row in self.tables[table_name])
                 for i, col in enumerate(set_columns):
+                    expected_type = col_types[col]
+                    value = set_values[i]
+
+                    # Type validation
+                    if expected_type == 'INT' and not isinstance(value, int):
+                        return False, f"ERROR: Type mismatch for column '{col}': expected INT, got {value} (type {type(value).__name__})"
+                    elif expected_type == 'STRING' and not isinstance(value, str):
+                        return False, f"ERROR: Type mismatch for column '{col}': expected STRING, got {value} (type {type(value).__name__})"
+
+                    #primary key
                     if col == primary_key:
                         if set_values[i] in pk_values:
                             self.tables[table_name] = backup_rows

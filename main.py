@@ -4,9 +4,9 @@ def main():
     db = SimpleDBMS()
     # print("example 1:")
     # print("create table:")
-    # db.execute("CREATE TABLE departments ( department_id INT PRIMARY KEY, department_name STRING, location STRING );")
-    # db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE);")
-    # # db.execute("DROP TABLE departments;")
+    db.execute("CREATE TABLE departments ( department_id INT PRIMARY KEY, department_name STRING, location STRING );")
+    db.execute("CREATE TABLE users ( id INT PRIMARY KEY, name STRING, age INT, department_id INT, FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE);")
+    #db.execute("DROP TABLE departments;")
     # print("insert data:")
     # db.execute("INSERT INTO departments VALUES  ( 1, 'CS', 'Hall');")
     # db.execute("INSERT INTO departments VALUES  ( 2, 'Math', 'College');")
@@ -83,18 +83,18 @@ def main():
     # db.set_join_method(False)
     
     # print("example 2:")
-    db = SimpleDBMS()
-    db.execute("CREATE TABLE table1 ( id INT PRIMARY KEY, col INT);")
+    #db = SimpleDBMS()
+    #db.execute("CREATE TABLE table1 ( id INT PRIMARY KEY, col INT);")
     
-    db.load(10000000, "table1", one=False)
-    print("\nRunning a query without the index:")
-    db.execute("SELECT * FROM table1 WHERE id = 5000;")
+    #db.load(10000000, "table1", one=False)
+    #print("\nRunning a query without the index:")
+    #db.execute("SELECT * FROM table1 WHERE id = 5000;")
 
-    print("\nCreating index on id column...")
-    db.create_index("table1", "id")
+    #print("\nCreating index on id column...")
+    #db.create_index("table1", "id")
     
-    print("\nRunning a query using the index:")
-    db.execute("SELECT * FROM table1 WHERE id = 5000;")
+    #print("\nRunning a query using the index:")
+    #db.execute("SELECT * FROM table1 WHERE id = 5000;")
     
     # print("\nSaving database state...")
     # db.save_database("database_backup.json")
@@ -117,24 +117,49 @@ def main():
     # print("\nVerify indexes were loaded (query should use index):")
     # new_db.execute("SELECT * FROM table1 WHERE id = 7500;")
 
-    db.execute("INSERT INTO departments VALUES (1, 'CS', 'Hall');")            
+    #db.execute("INSERT INTO departments VALUES (1, 'CS', 'Hall');")      
+    #db.execute("INSERT INTO users VALUES (2, 'Alice', 25, 1);")
+    #db.execute("INSERT INTO users VALUES (2, 'Tom', 19, 1);")
+    #db.execute("INSERT INTO users VALUES ('str', 'Tom', 19, 1);")
+    #db.execute("INSERT INTO users VALUES (4, 'Jack', 20, 999);")
+    #db.execute("SELECT * FROM users")
+    db.execute("INSERT INTO departments VALUES (1, 'CS', 'Hall');")
+    db.execute("INSERT INTO departments VALUES (2, 'Math', 'Car Barn');")
+
     db.execute("INSERT INTO users VALUES (2, 'Alice', 25, 1);")
-    db.execute("INSERT INTO users VALUES (2, 'Tom', 19, 1);")
-    db.execute("INSERT INTO users VALUES ('str', 'Tom', 19, 1);")
-    db.execute("INSERT INTO users VALUES (4, 'Jack', 20, 999);")
+    db.execute("INSERT INTO users VALUES (3, 'Chao Chin', 35, 1);")
+    db.execute("INSERT INTO users VALUES (5, 'Sidhant', 15, 1);")
 
     db.execute("SELECT * FROM users")
-    #db.execute("UPDATE users SET name='Updated' WHERE id=2;")
-    #db.execute("UPDATE users SET department_id=3 WHERE department_id=1;")
-    #db.execute("UPDATE users SET id=1 WHERE id=4;")
-    #db.execute("UPDATE users SET age='wrong_type' WHERE id=2;")
-    #db.execute("UPDATE users SET name='Merged', age=30 WHERE id=2 OR id=3;")
+    db.execute("SELECT * FROM departments")
 
-    db.execute("DELETE FROM users WHERE id=2;")                            
-    db.execute("DELETE FROM departments WHERE department_id=1;")                   
-    db.execute("DELETE FROM departments WHERE department_id=999;")
-    db.execute("DELETE FROM users WHERE id=3 OR age < 20;")    #this               
-    db.execute("DELETE FROM departments WHERE department_id='string';")   #this        
+ 
+
+
+    #db.execute("SELECT * FROM users")
+    #db.execute("SELECT * FROM departments")
+    #db.execute("UPDATE users SET name='Updated' WHERE id=2;")
+    #db.execute("SELECT * FROM users")
+    #db.execute("UPDATE users SET department_id=3 WHERE department_id=1;")
+    #db.execute("SELECT * FROM users")
+    #db.execute("UPDATE users SET id=1 WHERE id=5;")
+    #db.execute("SELECT * FROM users")
+    db.execute("UPDATE users SET age='wrong_type' WHERE id=2;")
+    db.execute("SELECT * FROM users")
+    #db.execute("UPDATE users SET name='Merged', age=30 WHERE id=2 OR id=3;")
+    #db.execute("SELECT * FROM users")
+
+    #db.execute("DELETE FROM users WHERE id=2;")   
+    #db.execute("SELECT * FROM users")
+    #db.execute("DELETE FROM departments WHERE department_id=1;")
+    #db.execute("SELECT * FROM departments") 
+    #db.execute("SELECT * FROM users")                   
+    #db.execute("DELETE FROM departments WHERE department_id=999;")
+    #db.execute("SELECT * FROM departments")         
+    #db.execute("DELETE FROM departments WHERE department_id='string';")   #this 
+    #db.execute("SELECT * FROM departments")  
+    #db.execute("DELETE FROM users WHERE id=3 OR age < 20;")    #this  
+    #db.execute("SELECT * FROM users")          
                               
 
     
