@@ -15,26 +15,25 @@ class Database:
         self.columns[table_name] = columns
         self.tables[table_name] = [] 
         self.primary_keys[table_name] = primary_key
-        self.foreign_keys[table_name] = foreign_keys or [] #added  
+        self.foreign_keys[table_name] = foreign_keys or [] 
 
         return True, f"Table '{table_name}' created with PRIMARY KEY: {primary_key}"
 
     def drop_table(self, table_name):
         """Drop an existing table."""
         if table_name in self.tables:
-            # Check if any other table references this table via foreign keys
             referencing_tables = []
             for other_table, fks in self.foreign_keys.items():
-                if other_table != table_name:  # Skip self-references
+                if other_table != table_name:  
                     for fk in fks:
                         if fk['ref_table'] == table_name:
                             referencing_tables.append(other_table)
-                            break  # One reference is enough to block the operation
+                            break  
             
             if referencing_tables:
                 return False, f"ERROR: Cannot drop table '{table_name}' because it is referenced by the following table(s): {', '.join(referencing_tables)}"
             
-            # No references found, proceed with dropping the table
+
             del self.tables[table_name]
             del self.columns[table_name]
             if table_name in self.primary_keys:
@@ -68,14 +67,14 @@ class Database:
                 if existing_row[primary_index] == row[primary_index]:
                     return False, f"ERROR: Duplicate entry for PRIMARY KEY '{primary_key}'"
 
-        # Type checking
+
         for (col_name, col_type), value in zip(column_definitions, row):
             if col_type == 'INT' and not isinstance(value, int):
                 return False, f"Expected INT for column '{col_name}', got {type(value).__name__}"
             elif col_type == 'STRING' and not isinstance(value, str):
                 return False, f"Expected STRING for column '{col_name}', got {type(value).__name__}"
 
-        # Foreign key checks
+
         for fk in self.foreign_keys.get(table_name, []):
             fk_col = fk['column']
             ref_table = fk['ref_table']
@@ -111,7 +110,7 @@ class Database:
             if self.columns[table_name][col_idx][1] == 'INT':
                 condition_values[i] = int(condition_values[i])
 
-        # Track rows to be deleted for index maintenance
+
         rows_to_delete = []
         
         while i < len(self.tables[table_name]):
@@ -130,8 +129,7 @@ class Database:
                           (logical_operator == 'OR' and any(results))
             
             if should_delete:
-                # BEFORE self.tables[table_name].pop(i)
-                # Check foreign key dependencies
+
                 for dependent_table, fks in self.foreign_keys.items():
                     for fk in fks:
                         if fk['ref_table'] == table_name:
@@ -142,14 +140,14 @@ class Database:
                             ref_value = row[ref_index]
 
                             if on_delete == 'CASCADE':
-                                # Delete matching rows from dependent table
+
                                 self.tables[dependent_table] = [
                                     r for r in self.tables[dependent_table]
                                     if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] != ref_value
                                 ]
                             elif on_delete == 'SET NULL':
                                 print(f"SET NULL triggered for FK {dependent_table}.{fk_col} where value = {ref_value}")
-                                # Set FK column to None
+
                                 fk_index = [col[0] for col in self.columns[dependent_table]].index(fk_col)
                                 for r in self.tables[dependent_table]:
                                     if r[fk_index] == ref_value:
@@ -161,38 +159,35 @@ class Database:
                                     if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] == ref_value:
                                         return False, f"ERROR: Cannot delete from '{table_name}' due to FOREIGN KEY constraint in '{dependent_table}'"
                 
-                # Track the row for index maintenance
                 rows_to_delete.append((i, row))
                 
-                # Delete the row
                 self.tables[table_name].pop(i)
                 deleted_count += 1
             else:
                 i += 1
         
-        # Update indexes after deletion
+
         if table_name in self.indexes and rows_to_delete:
-            # Sort rows by index in descending order to avoid index shifting issues
+
             rows_to_delete.sort(reverse=True, key=lambda x: x[0])
             
             for col_name, col_index in self.indexes[table_name].items():
                 col_idx = col_names.index(col_name)
                 
-                # For each deleted row
+
                 for _, row in rows_to_delete:
                     value = row[col_idx]
                     
-                    # Remove this row's index from the index structure
+
                     if value in col_index:
-                        # Find and remove this row's index
+
                         if i in col_index[value]:
                             col_index[value].remove(i)
                             
-                            # If no more rows with this value, remove the value entry
+
                             if not col_index[value]:
                                 del col_index[value]
-                
-                # Rebuild the index for remaining rows
+
                 new_index = {}
                 for row_idx, row in enumerate(self.tables[table_name]):
                     value = row[col_idx]
@@ -200,7 +195,7 @@ class Database:
                         new_index[value] = []
                     new_index[value].append(row_idx)
                 
-                # Update the index
+
                 self.indexes[table_name][col_name] = new_index
 
         return True, f"Deleted {deleted_count} rows from '{table_name}'"
@@ -237,13 +232,13 @@ class Database:
                     expected_type = col_types[col]
                     value = set_values[i]
 
-                    # Type validation
+
                     if expected_type == 'INT' and not isinstance(value, int):
                         return False, f"ERROR: Type mismatch for column '{col}': expected INT, got {value} (type {type(value).__name__})"
                     elif expected_type == 'STRING' and not isinstance(value, str):
                         return False, f"ERROR: Type mismatch for column '{col}': expected STRING, got {value} (type {type(value).__name__})"
 
-                    #primary key
+
                     if col == primary_key:
                         if set_values[i] in pk_values:
                             self.tables[table_name] = backup_rows
@@ -271,21 +266,21 @@ class Database:
             col_names = [col[0] for col in self.columns[t1]]
             full_col_names = col_names[:]
             
-            # Check if we can use an index for the condition (single table, single equality condition)
+
             if (condition_columns and len(condition_columns) == 1 and 
                 condition_types[0] == '=' and 
-                condition_value_types and condition_value_types[0] is None and  # Not a column comparison
+                condition_value_types and condition_value_types[0] is None and 
                 t1 in self.indexes and 
                 condition_columns[0] in self.indexes[t1] and 
                 condition_values[0] in self.indexes[t1][condition_columns[0]]):
                 
                 print(f"Using index on {t1}.{condition_columns[0]} for lookup")
-                # Use index for direct lookup
+
                 index = self.indexes[t1][condition_columns[0]]
                 row_indices = index[condition_values[0]]
                 filtered_rows = [self.tables[t1][idx] for idx in row_indices]
             else:
-                # Fallback to normal processing
+
                 rows = self.tables[t1]
                 if not condition_columns:
                     filtered_rows = rows
@@ -311,20 +306,20 @@ class Database:
             if self.use_sort_merge:
                 print("Using sort-merge join algorithm")
                 
-                # Extract join conditions and filter conditions
+
                 join_conditions = []
                 filter_conditions = []
                 
                 if condition_columns and condition_types and condition_values and condition_value_types:
                     for i, col in enumerate(condition_columns):
                         if condition_value_types[i] == 'COLUMN':
-                            # This is a join condition
+
                             join_conditions.append((col, condition_values[i], condition_types[i]))
                         else:
-                            # This is a filter condition
+ 
                             filter_conditions.append((col, condition_values[i], condition_types[i]))
                 
-                # Apply filters to individual tables first
+
                 t1_filters = []
                 t2_filters = []
                 for col, val, op in filter_conditions:
@@ -333,7 +328,7 @@ class Database:
                     elif col.startswith(f"{t2}."):
                         t2_filters.append((col.split('.')[1], val, op))
                 
-                # Filter t1 rows
+
                 t1_rows = self.tables[t1]
                 if t1_filters:
                     filtered_t1 = []
@@ -348,7 +343,7 @@ class Database:
                             filtered_t1.append(row)
                     t1_rows = filtered_t1
                 
-                # Filter t2 rows
+
                 t2_rows = self.tables[t2]
                 if t2_filters:
                     filtered_t2 = []
@@ -363,7 +358,7 @@ class Database:
                             filtered_t2.append(row)
                     t2_rows = filtered_t2
                 
-                # Extract join columns
+
                 join_cols = []
                 for left_col, right_col, op in join_conditions:
                     if op == '=' and left_col.startswith(f"{t1}.") and right_col.startswith(f"{t2}."):
@@ -375,61 +370,60 @@ class Database:
                         t1_col = right_col.split('.')[1]
                         join_cols.append((t1_col, t2_col))
                 
-                # If we have at least one equijoin condition, we can do the sort-merge join
+
                 if join_cols:
-                    # Get the indices for the join columns
-                    t1_col, t2_col = join_cols[0]  # Use the first join condition
+
+                    t1_col, t2_col = join_cols[0] 
                     t1_col_idx = [idx for idx, c in enumerate(self.columns[t1]) if c[0] == t1_col][0]
                     t2_col_idx = [idx for idx, c in enumerate(self.columns[t2]) if c[0] == t2_col][0]
                     
-                    # Sort both tables on the join columns
+        
                     sorted_t1 = sorted(t1_rows, key=lambda row: row[t1_col_idx])
                     sorted_t2 = sorted(t2_rows, key=lambda row: row[t2_col_idx])
                     
-                    # Perform the merge
-                    i = 0  # Index for t1
-                    j = 0  # Index for t2
+
+                    i = 0  
+                    j = 0  
                     
                     while i < len(sorted_t1) and j < len(sorted_t2):
                         t1_val = sorted_t1[i][t1_col_idx]
                         t2_val = sorted_t2[j][t2_col_idx]
                         
                         if t1_val < t2_val:
-                            # t1's value is smaller, advance t1 pointer
+      
                             i += 1
                         elif t1_val > t2_val:
-                            # t2's value is smaller, advance t2 pointer
+     
                             j += 1
                         else:
-                            # Match found - collect all rows with this join value
+
                             match_val = t1_val
                             
-                            # Find all t1 rows with this value
+
                             matching_t1 = []
                             while i < len(sorted_t1) and sorted_t1[i][t1_col_idx] == match_val:
                                 matching_t1.append(sorted_t1[i])
                                 i += 1
                             
-                            # Find all t2 rows with this value
+
                             matching_t2 = []
                             while j < len(sorted_t2) and sorted_t2[j][t2_col_idx] == match_val:
                                 matching_t2.append(sorted_t2[j])
                                 j += 1
                             
-                            # Create result rows from matched rows
                             for t1_row in matching_t1:
                                 for t2_row in matching_t2:
                                     filtered_rows.append(t1_row + t2_row)
                     
-                    # Verify all other join conditions if any
+
                     if len(join_cols) > 1:
                         verified_rows = []
                         for row in filtered_rows:
                             valid = True
-                            for t1_join_col, t2_join_col in join_cols[1:]:  # Skip the first one we already used
+                            for t1_join_col, t2_join_col in join_cols[1:]:  
                                 t1_idx = [idx for idx, c in enumerate(self.columns[t1]) if c[0] == t1_join_col][0]
                                 t2_idx = [idx for idx, c in enumerate(self.columns[t2]) if c[0] == t2_join_col][0]
-                                t2_offset = len(self.columns[t1])  # Offset to find t2 columns in combined row
+                                t2_offset = len(self.columns[t1])  
                                 
                                 if row[t1_idx] != row[t2_offset + t2_idx]:
                                     valid = False
@@ -440,7 +434,7 @@ class Database:
                         
                         filtered_rows = verified_rows
                 else:
-                    # No equijoin condition, fallback to Cartesian product
+
                     print("No equijoin condition found, falling back to Cartesian product")
                     rows = [r1 + r2 for r1 in t1_rows for r2 in t2_rows]
                     
@@ -460,7 +454,7 @@ class Database:
                     else:
                         filtered_rows = rows
             else:
-                # Current implementation - Cartesian product
+
                 print("Using Cartesian product join algorithm")
                 rows = [r1 + r2 for r1 in self.tables[t1] for r2 in self.tables[t2]]
                 
@@ -559,14 +553,10 @@ class Database:
 
         
         if not (len(selected_columns) == 1 and selected_columns[0] == '*'):
-            #selected_indices = [col_names.index(col) for col in selected_columns if col in col_names]
             selected_indices = [col_names.index(col) for col in expanded_selected_columns if col in col_names]
             for i in range(len(filtered_rows)):
                 filtered_rows[i] = [filtered_rows[i][idx] for idx in selected_indices]
-            # print("[DEBUG] Expanded Selected Columns:", expanded_selected_columns)
-            # print("[DEBUG] Selected Indices:", selected_indices)
-            # if filtered_rows:
-            #     print("[DEBUG] Sample Selected Row:", filtered_rows[0])
+
 
 
 
@@ -616,11 +606,10 @@ class Database:
         if column_name not in column_names:
             return False, f"ERROR: Column '{column_name}' does not exist in table '{table_name}'"
             
-        # Initialize the index structure if it doesn't exist
+
         if table_name not in self.indexes:
             self.indexes[table_name] = {}
-            
-        # Create the index
+
         index = {}
         col_idx = column_names.index(column_name)
         
@@ -644,10 +633,10 @@ class Database:
         if column_name not in self.indexes[table_name]:
             return False, f"ERROR: No index exists on column '{column_name}' in table '{table_name}'"
             
-        # Remove the index
+
         del self.indexes[table_name][column_name]
         
-        # If no more indexes on this table, remove the table entry from indexes
+
         if not self.indexes[table_name]:
             del self.indexes[table_name]
             
@@ -665,7 +654,7 @@ class Database:
         
         start_time = time.time()
         
-        # Create a serializable database state
+
         db_state = {
             "tables": self.tables,
             "columns": self.columns,
@@ -673,14 +662,14 @@ class Database:
             "foreign_keys": self.foreign_keys
         }
         
-        # Handle indexes specially (convert non-string keys to strings)
+
         serialized_indexes = {}
         for table_name, table_indexes in self.indexes.items():
             serialized_indexes[table_name] = {}
             for column_name, column_index in table_indexes.items():
                 serialized_indexes[table_name][column_name] = {}
                 for value, row_indices in column_index.items():
-                    # Convert value to string for JSON serialization
+
                     serialized_indexes[table_name][column_name][str(value)] = row_indices
         
         db_state["indexes"] = serialized_indexes
@@ -712,14 +701,12 @@ class Database:
         try:
             with open(filename, 'r') as f:
                 db_state = json.load(f)
-            
-            # Restore basic database structures
+
             self.tables = db_state["tables"]
             self.columns = db_state["columns"]
             self.primary_keys = db_state["primary_keys"]
             self.foreign_keys = db_state["foreign_keys"]
-            
-            # Restore indexes with proper type conversion
+
             self.indexes = {}
             serialized_indexes = db_state["indexes"]
             
@@ -727,20 +714,19 @@ class Database:
                 self.indexes[table_name] = {}
                 for column_name, column_index in table_indexes.items():
                     self.indexes[table_name][column_name] = {}
-                    
-                    # Get column type to properly convert values
+
                     column_names = [col[0] for col in self.columns[table_name]]
                     if column_name in column_names:
                         col_idx = column_names.index(column_name)
                         col_type = self.columns[table_name][col_idx][1]
                         
                         for value_str, row_indices in column_index.items():
-                            # Convert value back to original type
+
                             if col_type == 'INT':
                                 try:
                                     value = int(value_str)
                                 except ValueError:
-                                    value = value_str  # Keep as string if can't convert
+                                    value = value_str  
                             else:
                                 value = value_str
                                 
