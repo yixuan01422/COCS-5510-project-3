@@ -4,9 +4,9 @@ class Database:
         self.tables = {} 
         self.columns = {}  
         self.primary_keys = {}
-        self.foreign_keys = {}   #added 
-        self.indexes = {}  # Store indexes: {table_name: {column_name: {value: [row_indices]}}}
-        self.use_sort_merge = False  # Flag to control join method
+        self.foreign_keys = {}   
+        self.indexes = {}  
+        self.use_sort_merge = False  
         
     def create_table(self, table_name, columns, primary_key=None, foreign_keys=None): 
         """Create a new table."""
@@ -108,20 +108,12 @@ class Database:
 
         for i, col in enumerate(condition_columns):
             col_idx = col_names.index(col)
-            #if self.columns[table_name][col_idx][1] == 'INT':
-            #    condition_values[i] = int(condition_values[i])
+            if self.columns[table_name][col_idx][1] == 'INT':
+                condition_values[i] = int(condition_values[i])
 
-            col_type = self.columns[table_name][col_idx][1]
-            # Only cast if the value is clearly numeric and the column expects INT
-            if col_type == 'INT':
-                if isinstance(condition_values[i], str) and condition_values[i].isdigit():
-                    condition_values[i] = int(condition_values[i])
-                elif isinstance(condition_values[i], int):
-                    continue
-                else:
-                    return False, f"Expected INT for column '{col}', got '{condition_values[i]}'"
-
-
+        # Track rows to be deleted for index maintenance
+        rows_to_delete = []
+        
         while i < len(self.tables[table_name]):
             row = self.tables[table_name][i]
             results = [
@@ -137,8 +129,6 @@ class Database:
                           (logical_operator == 'AND' and all(results)) or \
                           (logical_operator == 'OR' and any(results))
             
-
-
             if should_delete:
                 # BEFORE self.tables[table_name].pop(i)
                 # Check foreign key dependencies
@@ -162,8 +152,6 @@ class Database:
                                 # Set FK column to None
                                 fk_index = [col[0] for col in self.columns[dependent_table]].index(fk_col)
                                 for r in self.tables[dependent_table]:
-                                    #if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] == ref_value:
-                                    #    r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] = None
                                     if r[fk_index] == ref_value:
                                         print(f" - Setting NULL for row: {r}")
                                         r[fk_index] = None
@@ -172,12 +160,48 @@ class Database:
                                 for r in self.tables[dependent_table]:
                                     if r[[col[0] for col in self.columns[dependent_table]].index(fk_col)] == ref_value:
                                         return False, f"ERROR: Cannot delete from '{table_name}' due to FOREIGN KEY constraint in '{dependent_table}'"
-                #print(f"[DEBUG] Foreign key map: {self.foreign_keys}")
-
+                
+                # Track the row for index maintenance
+                rows_to_delete.append((i, row))
+                
+                # Delete the row
                 self.tables[table_name].pop(i)
                 deleted_count += 1
             else:
                 i += 1
+        
+        # Update indexes after deletion
+        if table_name in self.indexes and rows_to_delete:
+            # Sort rows by index in descending order to avoid index shifting issues
+            rows_to_delete.sort(reverse=True, key=lambda x: x[0])
+            
+            for col_name, col_index in self.indexes[table_name].items():
+                col_idx = col_names.index(col_name)
+                
+                # For each deleted row
+                for _, row in rows_to_delete:
+                    value = row[col_idx]
+                    
+                    # Remove this row's index from the index structure
+                    if value in col_index:
+                        # Find and remove this row's index
+                        if i in col_index[value]:
+                            col_index[value].remove(i)
+                            
+                            # If no more rows with this value, remove the value entry
+                            if not col_index[value]:
+                                del col_index[value]
+                
+                # Rebuild the index for remaining rows
+                new_index = {}
+                for row_idx, row in enumerate(self.tables[table_name]):
+                    value = row[col_idx]
+                    if value not in new_index:
+                        new_index[value] = []
+                    new_index[value].append(row_idx)
+                
+                # Update the index
+                self.indexes[table_name][col_name] = new_index
 
         return True, f"Deleted {deleted_count} rows from '{table_name}'"
     
